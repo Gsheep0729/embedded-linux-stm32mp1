@@ -53,7 +53,7 @@ FS-MP1A（STM32MP157A）实验课：在 VirtualBox 的 Ubuntu 20.04 虚拟机里
 - 虚拟机：VirtualBox + Ubuntu 20.04（focal），主机名 `cnu-virtual-machine`，用户 `cnu`，内存 4GB（编译用 `-j2` 上限）。
 - 共享文件夹挂载点换过（实验一 `~/Desktop/share/Linux/Test1` → 现在 `~/Desktop/LINUX-gy/Test2`），新实验先看用户终端提示符确认路径。
 - 工具链：`/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`；激活：`source /stm32env`（符号链接可能未建）或直接 `. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi`；**每个新终端窗口都要重新激活**，`echo $CC` 验证。
-- git 已配置（Gsheep0729 / 2697438381@qq.com）。
+- git 已配置（Gsheep0729 / 2697438381@qq.com）；远程 origin = `ssh://git@ssh.github.com:443/Gsheep0729/embedded-linux-stm32mp1.git`——走 443 备用端口，因为 Clash 代理会掐断 `github.com:22` 的 git 连接（报错 `Connection closed by 198.18.0.111 port 22`）；本地分支已改名 `main`。
 - U-Boot 源码（已打 6 个 ST 补丁，WORKING 分支 7 条提交）：`~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01`。
 - basic 版编译：`make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a` → 产物 `u-boot-spl.stm32`（FSBL）+ `u-boot.img`（SSBL）。
 - 串口：VirtualBox 抓板载 ST-Link 虚拟串口，115200；当前板子跑出厂固件（trusted 模式，DK1 设备树）。
