@@ -26,6 +26,9 @@
 | 07 | [实验六：F-2 修改 SD 卡驱动](01_移植U-Boot/07_实验六_F-2修改SD卡驱动.md) | CD 检测引脚一行改动（PB7→PH3），首次进入 U-Boot 命令行 |
 | 08 | [实验七：F-3 去掉 ADC 功能](01_移植U-Boot/08_实验七_F-3去掉ADC功能.md) | menuconfig 关两个 ADC 开关，开机电流检测报错清零 |
 | 09 | [实验八：F-4 关闭 LTDC 显示](01_移植U-Boot/09_实验八_F-4关闭LTDC显示.md) | 设备树一行 status 改动，关闭用不上的显示控制器 |
+| 10 | [实验九：F-5 替换网卡驱动](01_移植U-Boot/10_实验九_F-5替换网卡驱动.md) | 拷入 MAE0621A 驱动三件套 + 三处配套修改，ping 通 PC |
+| 11 | [实验十：F-6 支持 eMMC](01_移植U-Boot/11_实验十_F-6支持eMMC.md) | 设备树新增 sdmmc2 节点与启动通道，串口出现 MMC1 |
+| 12 | [实验十一：trusted 版 U-Boot 移植](01_移植U-Boot/12_实验十一_trusted版U-Boot移植.md) | TF-A 接任 FSBL、配置重做三处，`in trusted mode` 收官 |
 
 ## 文档特点
 

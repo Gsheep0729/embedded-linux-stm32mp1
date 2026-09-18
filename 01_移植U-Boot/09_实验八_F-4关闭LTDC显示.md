@@ -126,7 +126,13 @@ grep -A 4 "^&ltdc" arch/arm/dts/stm32mp15xx-fsmp1x.dtsi     # status 应为 "dis
 grep -c "ltdc_ep0_out" arch/arm/dts/stm32mp15xx-fsmp1x.dtsi # 应为 2（定义 + sii9022 的引用，port 还在的旁证）
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**（2026-09-18 实测）：
+
+![nano 完成修改](./09_实验八_F-4关闭LTDC显示.assets/02_nano保存修改.png)
+> 图：nano 里改完的样子——`status = "disabled";` 已就位（红箭头所指），下方 `port` 段原样保留。此刻尚未保存，接着 `Ctrl+S` 保存、`Ctrl+X` 退出。
+
+![改动前后自检](./09_实验八_F-4关闭LTDC显示.assets/03_自检修改生效.png)
+> 图：自检实测——上方 `grep -n -A 15 "^&ltdc"` 是改动前定位（`&ltdc` 在第 347 行，`status = "okay"`，port 段完整可见）；nano 保存退出后再查，`grep -A 4` 显示 `status = "disabled"`（红箭头），`grep -c "ltdc_ep0_out"` 输出 `2`（port 段还在的旁证），全部与预期一致。
 
 ### 步骤 4：重新编译（沿用实验六流程）
 
@@ -136,7 +142,10 @@ make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a
 
 和实验六一样只动了设备树，编译是"重编 dtb + 重新打包"的轻量活，一两分钟，以 `MKIMAGE spl/u-boot-spl.stm32` 收尾。编译本身也是一次校验——万一 `port` 段被误删或改坏，`dtc` 在这一步就会把悬空引用揪出来。
 
-**实际执行结果**：待补充
+**实际执行结果**（2026-09-18 实测）：编译顺利通过——`port` 段的保留经受住了 `dtc` 的检验。
+
+![编译收尾输出](./09_实验八_F-4关闭LTDC显示.assets/04_编译收尾与lsblk确认.png)
+> 图：编译收尾——`MKIMAGE spl/u-boot-spl.stm32`、`COPY u-boot-spl.stm32`、`CFGCHK u-boot.cfg` 后回到提示符（红框），与实验六同款收尾；截图下部的 `lsblk` 顺手确认 SD 卡仍在 `/dev/sdb`（sdb1/sdb2 各 256K 可见），为下一步烧写做准备。
 
 ### 步骤 5：烧写 SD 卡（沿用实验六流程）
 
@@ -149,7 +158,10 @@ sudo dd if=u-boot.img     of=/dev/sdb3 conv=fdatasync
 
 > **为什么三条照旧全烧？** SPL 里也打包了一份同一套设备树（SPL 靠它做最小初始化）。虽然 SPL 阶段根本不碰显示，但三条全烧能保证卡上不存在"新旧混搭"，排查问题时不用多想一步。
 
-**实际执行结果**：待补充
+**实际执行结果**（2026-09-18 实测）：
+
+![三条 dd 烧写完成](./09_实验八_F-4关闭LTDC显示.assets/05_三条dd烧写完成.png)
+> 图：三条 dd 实测——`u-boot-spl.stm32` → sdb1、`u-boot-spl.stm32` → sdb2（各 98921 字节）、`u-boot.img` → sdb3（853450 字节），每条都以"记录了 … 的读入/写出"收尾，烧写成功。
 
 ### 步骤 6：上电验证
 
@@ -157,7 +169,58 @@ sudo dd if=u-boot.img     of=/dev/sdb3 conv=fdatasync
 
 **这一站的里程碑**：串口输出与实验七**完全一致**——没有新增任何报错，U-Boot 横幅照常，仍停在 `STM32MP>` 命令行。再强调一遍预期：F-4 的改动在串口里"看不见"（LTDC 本来就不报错），"改对了"由步骤 2~3 的自检与第六节的产物级验证来证明，串口只要证明"没改坏"。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+U-Boot SPL 2020.01-stm32mp-r1-g1ac3a506-dirty (Sep 18 2026 - 22:42:11 +0800)
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+RAM: DDR3-DDR3L 16bits 533000Khz
+WDT:   Started with servicing (32s timeout)
+Trying to boot from MMC1
+
+
+U-Boot 2020.01-stm32mp-r1-g1ac3a506-dirty (Sep 18 2026 - 22:42:11 +0800)
+
+CPU: STM32MP157AAA Rev.Z
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+Board: stm32mp1 in basic mode (st,stm32mp157a-dk1)
+DRAM:  512 MiB
+Clocks:
+- MPU : 650 MHz
+- MCU : 208.878 MHz
+- AXI : 266.500 MHz
+- PER : 24 MHz
+- DDR : 533 MHz
+WDT:   Started with servicing (32s timeout)
+NAND:  0 MiB
+MMC:   STM32 SD/MMC: 0
+Loading Environment from MMC... OK
+In:    serial
+Out:   serial
+Err:   serial
+Net:   eth0: ethernet@5800a000
+Hit any key to stop autoboot:  0
+EQOS_DMA_MODE_SWR stuckFAILED: -110EQOS_DMA_MODE_SWR stuckFAILED: -110Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+STM32MP>
+
+```
+
+![串口完整日志](./09_实验八_F-4关闭LTDC显示.assets/06_串口完整日志.png)
+> 图：MobaXterm（COM11）实测完整日志——从 SPL 横幅到 `STM32MP>`，与上方文本记录一致；版本串 `2020.01-stm32mp-r1-g1ac3a506-dirty (Sep 18 2026 - 22:42:11 +0800)`。
+
+![上电到命令行的启动过程](./09_实验八_F-4关闭LTDC显示.assets/07_串口启动过程.gif)
+> 图：上电到 `STM32MP>` 的启动过程动图——节奏与实验七一致，全程无新报错。
+
+**这份日志怎么读**（与实验七那份逐行对照，结论就是"完全一致"）：
+
+| 日志片段 | 解读 |
+|---|---|
+| 版本串 `g1ac3a506-dirty` | 哈希 `g1ac3a506` = 当前 git HEAD，即**实验七步骤 7 那次 F-3 defconfig 提交**（对照实验六时的 `g8de188df`，哈希前进了恰好一格）；`-dirty` 则是本次 F-4 的 `fsmp1x.dtsi` 改动还在工作区未提交（步骤 7 才提交）——一切符合预期 |
+| 无电源报错、无 ADC 报错，`Err: serial` 直达 `Net:` | F-1 / F-3 的成果原样保持 |
+| `Loading Environment from MMC... OK` | 同实验六：读到的是卡数据区遗留的有效环境 |
+| `EQOS_DMA_MODE_SWR stuckFAILED: -110`×2 → bootm 报错 → `STM32MP>` | 与实验七相同的两类遗留问题：网卡（F-5 处理）、卡上没有内核（内核阶段处理），本站不涉及 |
+| 全程没有任何新增报错 | F-4 预期的"安静"：LTDC 本来就不报错，关掉它串口看不出变化——"改对了"由步骤 3 的自检与第六节的产物级验证证明，串口证明的是"没改坏" |
 
 ### 步骤 7：收尾——git 提交
 
@@ -223,6 +286,8 @@ ltdc@5a001000 {
 2. U-Boot 横幅与 `Board: stm32mp1 in basic mode (...)` 照常出现；
 3. 停在 `STM32MP>`，命令可用。
 
+实测（2026-09-18 22:42 构建）：三条全部成立（见步骤 6）。
+
 > 说实话：这三条即使不改 `status` 也成立——所以第三层只能证明"没改坏"，"改对了"由第一、二层证明。这也是 F-4 与 F-1~F-3 最大的不同：前三站串口立刻"变脸"，这一站是安静的结构清理。
 
 不达标时的排查顺序：
@@ -239,9 +304,9 @@ ltdc@5a001000 {
 
 ## 七、实验完成标志
 
-- `stm32mp15xx-fsmp1x.dtsi` 中 `&ltdc` 的 `status` 已由 `"okay"` 改为 `"disabled"`，`port` 段原样保留
-- 重新编译成功，三个镜像已重新烧写到 sdb1 / sdb2 / sdb3
-- 串口启动日志与实验七一致（无新增报错），停在 `STM32MP>` 命令行
+- `stm32mp15xx-fsmp1x.dtsi` 中 `&ltdc` 的 `status` 已由 `"okay"` 改为 `"disabled"`，`port` 段原样保留（步骤 3 实测）
+- 重新编译成功，三个镜像已重新烧写到 sdb1 / sdb2 / sdb3（步骤 4~5 实测）
+- 串口启动日志与实验七一致（无新增报错），停在 `STM32MP>` 命令行（步骤 6 实测）
 - 已完成 git 提交（仅 1 个文件）
 
 ## 八、下一步
