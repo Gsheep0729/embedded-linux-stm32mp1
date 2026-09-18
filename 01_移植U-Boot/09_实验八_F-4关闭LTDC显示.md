@@ -234,7 +234,14 @@ git commit -m "F-4: 关闭 LTDC 显示控制器（status 改 disabled）"
 
 > **为什么不用拷 defconfig？** 与实验六相同：只改设备树，没动 `.config`，`cp .config configs/...` 那一步是给"改过 menuconfig"的情况准备的。
 
-**实际执行结果**：待补充
+**实际执行结果**（2026-09-18）：`git status` 确认被修改的只有 `arch/arm/dts/stm32mp15xx-fsmp1x.dtsi` 一个文件，提交回显：
+
+```
+[WORKING ec8c29dd] F-4: 关闭 LTDC 显示控制器（status 改 disabled）
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+```
+
+版本串接力再进一格：实验四 `g3f0216e7`（初始）→ 实验六 `g2224655f`（F-1）→ 实验七 `g8de188df`（F-2）→ 实验八构建时 `g1ac3a506`（F-3，见步骤 6 日志）→ 本次提交 `ec8c29dd`（F-4）。实验九编译产物的版本串将从 `g ec8c29dd` 起跳。
 
 ## 五、注意事项
 
@@ -307,7 +314,7 @@ ltdc@5a001000 {
 - `stm32mp15xx-fsmp1x.dtsi` 中 `&ltdc` 的 `status` 已由 `"okay"` 改为 `"disabled"`，`port` 段原样保留（步骤 3 实测）
 - 重新编译成功，三个镜像已重新烧写到 sdb1 / sdb2 / sdb3（步骤 4~5 实测）
 - 串口启动日志与实验七一致（无新增报错），停在 `STM32MP>` 命令行（步骤 6 实测）
-- 已完成 git 提交（仅 1 个文件）
+- 已完成 git 提交（仅 1 个文件，`ec8c29dd`）（步骤 7 实测）
 
 ## 八、下一步
 
