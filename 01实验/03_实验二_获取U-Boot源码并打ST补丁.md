@@ -1,6 +1,6 @@
 # 实验二 获取 U-Boot 源码并打 ST 补丁——把"别人的代码"理清楚
 
-> **系列说明**：本系列基于正点原子 FS-MP1A（STM32MP157A）开发板，对应课件《第3章 移植U-Boot》。本文覆盖 Slide 32-34。前置：实验一的工具链已装好（`/opt/st/stm32mp1/...`），git 已配置。
+> **系列说明**：本系列基于华清远见 FS-MP1A（STM32MP157A）开发板，对应课件《第3章 移植U-Boot》。本文覆盖 Slide 32-34。前置：实验一的工具链已装好（`/opt/st/stm32mp1/...`），git 已配置。
 
 ## 一、为什么不直接下载个 U-Boot 就开改？
 
@@ -209,7 +209,7 @@ git branch
 git status
 ```
 
-实际输出（✅ 全部符合预期）：
+实际输出：
 
 ```
 $ git log --oneline | head -10
@@ -240,19 +240,19 @@ $ git status
 
 | 检查项 | 结果 |
 |---|---|
-| en.SOURCES 解压，r0 目录内容与课件一致（10 个文件） | ✅ |
-| 官方源码解压出 `u-boot-stm32mp-2020.01`，源码树完整 | ✅ |
-| git init + 源码基线提交（52ec4091） | ✅（末尾 gc fatal 无害） |
-| WORKING 分支创建，master 保持原始状态 | ✅ |
-| 6 个 ST 补丁全部 `git am` 成功，无 conflict | ✅（空白警告无害） |
-| `git log` 共 7 条提交，工作区干净 | ✅ |
+| en.SOURCES 解压，r0 目录内容与课件一致（10 个文件） | 通过 |
+| 官方源码解压出 `u-boot-stm32mp-2020.01`，源码树完整 | 通过 |
+| git init + 源码基线提交（52ec4091） | 通过（末尾 gc fatal 无害） |
+| WORKING 分支创建，master 保持原始状态 | 通过 |
+| 6 个 ST 补丁全部 `git am` 成功，无 conflict | 通过（空白警告无害） |
+| `git log` 共 7 条提交，工作区干净 | 通过 |
 
 ## 六、实验完成标志
 
-- [x] 解压出 `u-boot-stm32mp-2020.01-r0`，目录内容与课件清单一致
-- [x] `git init` + 源码基线 commit 成功
-- [x] WORKING 分支上 6 个补丁全部 `git am` 成功，无 conflict
-- [x] `git log --oneline` 可见 1 条源码提交 + 6 条补丁提交
+- 解压出 `u-boot-stm32mp-2020.01-r0`，目录内容与课件清单一致
+- `git init` + 源码基线 commit 成功
+- WORKING 分支上 6 个补丁全部 `git am` 成功，无 conflict
+- `git log --oneline` 可见 1 条源码提交 + 6 条补丁提交
 
 ## 七、踩坑与经验
 

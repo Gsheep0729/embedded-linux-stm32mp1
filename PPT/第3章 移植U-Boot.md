@@ -469,10 +469,10 @@ dk1的pmic连接在I2C4总线上， FS-MP1A没使用I2C4总线，因此把设备
 在arch/arm/dts/stm32mp15xx-fsmp1x.dtsi文件中删除以下内容
 
 ![chap03/slide051_38.png](images/chap03/slide051_38.png)
-> 图：stm32mp15xx-fsmp1x.dtsi中要删除的&i2c4节点内容（起始部分）：pinctrl-names = "default", "sleep"; pinctrl-0 = <&i2c4_pins_a>; pinctrl-1 = <&i2c4_pins_sleep_a>; i2c-scl-rising-time-ns = <185>; i2c-scl-falling-time-ns = <20>; clock-frequency = <400000>;
+> 图：&i2c4节点中要删除内容的末尾部分（中间以/*内容太长此处省略*/代替）：watchdog { compatible = "st,stpmic1-wdt"; status = "disabled"; }; 及 pmic 子节点与 &i2c4 节点收尾的“};};};”。
 
 ![chap03/slide051_39.png](images/chap03/slide051_39.png)
-> 图：&i2c4节点中要删除内容的末尾部分（中间以/*内容太长此处省略*/代替）：watchdog { compatible = "st,stpmic1-wdt"; status = "disabled"; }; 及节点、根节点收尾的“};};};”。
+> 图：stm32mp15xx-fsmp1x.dtsi中要删除的&i2c4节点内容（起始部分）：pinctrl-names = "default", "sleep"; pinctrl-0 = <&i2c4_pins_a>; pinctrl-1 = <&i2c4_pins_sleep_a>; i2c-scl-rising-time-ns = <185>; i2c-scl-falling-time-ns = <20>; clock-frequency = <400000>;
 删除这些内容
 关于设备树的修改，现在不要问为什么，照着改就完了！留到驱动开发中再解释为什么，这个问题太多、太复杂。
 
@@ -497,10 +497,10 @@ dk1的还I2C4总线上还有一个USB type C控制器，随上面I2C4节点一�
      arch/arm/dts/stm32mp15xx-fsmp1x.dtsi删除红色部分内容
 
 ![chap03/slide054_42.png](images/chap03/slide054_42.png)
-> 图：stm32mp15xx-fsmp1x.dtsi中&usbotg_hs节点要删除内容的前半部分（红字）：phys = <&usbphyc_port1 0>; phy-names = "usb2-phy";
+> 图：stm32mp15xx-fsmp1x.dtsi中&usbotg_hs节点的开头部分（黑字，保留不动）：phys = <&usbphyc_port1 0>; phy-names = "usb2-phy";
 
 ![chap03/slide054_43.png](images/chap03/slide054_43.png)
-> 图：&usbotg_hs节点要删除内容的后半部分（红字）：usb-role-switch; status = "okay"; port { usbotg_hs_ep: endpoint { remote-endpoint = <&con_usbotg_hs_ep>; }; }; };，其中remote-endpoint引用了I2C4总线上的type C控制器。
+> 图：&usbotg_hs节点中要删除的部分（红字）：port { usbotg_hs_ep: endpoint { remote-endpoint = <&con_usbotg_hs_ep>; }; };，其中 remote-endpoint 引用了 I2C4 总线上的 type C 控制器（该控制器节点随 &i2c4 一并被删除，引用必须同步删掉）；上方 usb-role-switch; status = "okay"; 为保留内容。
 
 <!-- Slide number: 55 -->
 # 3.5 U-boot移植-basic版

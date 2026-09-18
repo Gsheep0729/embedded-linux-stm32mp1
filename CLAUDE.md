@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 仓库性质
 
-嵌入式 Linux 课程资料库（正点原子 FS-MP1A / STM32MP157A 开发板，共 10 章）。不是代码项目，没有构建/测试流程。核心资产是 `PPT/*.md`（由课件 PPT 转换的图文完整版）及 `PPT/images/chap01~10/` 配图。
+嵌入式 Linux 课程资料库（华清远见 FS-MP1A / STM32MP157A 开发板，共 10 章）。不是代码项目，没有构建/测试流程。核心资产是 `PPT/*.md`（由课件 PPT 转换的图文完整版）及 `PPT/images/chap01~10/` 配图。
 
 - `PPT/*.md` + `PPT/images/` 是**git 跟踪的唯一内容**，也是知识的权威载体（描述行中逐字转录了截图里的 menuconfig 路径、配置项、命令行等）。
 - 原始课件 `.dps`/`.pptx` 保留在磁盘上但被 git 忽略。若 md 描述存疑，以原 PPT 截图为准。
@@ -36,38 +36,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 实验部分（01实验/）
 
-FS-MP1A（STM32MP157A）实验课：在 VirtualBox 的 Ubuntu 20.04 虚拟机里做交叉编译，把 U-Boot/内核烧到开发板。当前实验对应课件《第3章 移植U-Boot》，按 Slide 范围拆成多个实验。
+FS-MP1A（STM32MP157A）实验课：在 VMware 的 Ubuntu 20.04 虚拟机里做交叉编译，把 U-Boot/内核烧到开发板。当前实验对应课件《第3章 移植U-Boot》，按 Slide 范围拆成多个实验。
 
 ### 实验工作流
 
 - 每个实验一份指导文件 `01实验/NN_实验N_内容.md`（博客命名规则见下），范围对应课件的具体 Slide；开头有"课件 ↔ 步骤"对应表，正文为：实验目的 → 实验环境 → 实验步骤 → 注意事项 → 完成标志 → 后续实验预告。
 - 实验开始前：写指导（命令 + 预期输出 + 注意事项），各步骤留"**实际执行结果**：待补充"占位。
-- 用户在虚拟机里执行，把终端输出贴回对话（原始记录由用户存到 `testN.md`），完成后把真实输出合并进指导文件：替换"待补充"、状态改 ✅、勾选完成标志——二者合二为一。
+- 用户在虚拟机里执行，把终端输出贴回对话（原始记录由用户存到 `testN.md`），完成后把真实输出合并进指导文件：替换"待补充"、勾选完成标志——二者合二为一。
 - 用户会自己往指导文件里插截图（`实验N ...assets/` 目录）并编辑文件——**每次编辑指导文件前必须重新 Read**，文件经常在对话间隙被用户更新。
 - 用户偏好：指导文件只写正确流程，走弯路的尝试不写入（实验一的 SDK 误装目录已按要求删除）；但无害报错的解释（如 gc 冲突）可以保留。
 - **博客文档图片规范（Typora 规则）**：博客发布的 md（01实验 各指导/导论 + 根目录专栏总导论）图片一律复制到 `./${md文件名}.assets/` 文件夹，引用写 `./${md文件名}.assets/xxx.png`——**禁止 `../PPT/images` 跨目录引用**（博客平台不解析）；PPT/*.md 仍用 `images/chapNN/` 共享图库不动。新写博客文档时先建 assets 文件夹再写引用。
 - **博客文档命名规则（用户指定，2026-09-16）**：博客 md 及 assets 文件名**不含空格**，统一 `NN_短标题.md`——NN 为两位序号，按专栏全局阅读顺序递增（文件名排序即阅读顺序，方便索引）；下划线分词（避免与 U-Boot、F-1 内部连字符混淆）；assets 文件夹严格同名加 `.assets`。已定名：根目录 `00_专栏总导论_嵌入式Linux全景与学习路线.md`；01实验：`01_实验导论_U-Boot基础与移植全景.md`、`02_实验一_安装交叉编译工具链.md`、`03_实验二_获取U-Boot源码并打ST补丁.md`、`04_实验三_basic版U-Boot配置与首次编译.md`。后续（实验四、F 系列、trusted、第4~10章实验）从 05 续编。testN.md、PPT/*.md、CLAUDE.md 不适用此规则。
+- **博客文档不写“当前进度”**（用户指定，2026-09-18）：博客 md（专栏导论、实验导论、各实验指导）里不放「状态：已完成/进行中」「专栏目录（持续更新）」这类会随发布时间过期、需要反复同步的内容——一律写成对任何时间点的读者都成立的“写死”表述；真实的实验进度**只记录在本文件「实验进度」一节**（各实验内部的「完成标志」勾选表属于该篇实验的固定记录，保留）。
 
 ### 实验环境（截至 2026-09-15，有变化以用户终端为准）
 
-- 虚拟机：VirtualBox + Ubuntu 20.04（focal），主机名 `cnu-virtual-machine`，用户 `cnu`，内存 4GB（编译用 `-j2` 上限）。
+- 虚拟机：VMware + Ubuntu 20.04（focal），主机名 `cnu-virtual-machine`，用户 `cnu`，内存 4GB（编译用 `-j2` 上限）。
+- **课件截图用的是 VirtualBox**（课件里主机名 `cnu@cnu-VirtualBox`），用户实验机是 **VMware**（`cnu@cnu-virtual-machine`）——写指导文件一律按用户环境（VMware）描述，USB 转交/串口等界面操作不要照抄课件截图。
 - 共享文件夹挂载点换过（实验一 `~/Desktop/share/Linux/Test1` → 现在 `~/Desktop/LINUX-gy/Test2`），新实验先看用户终端提示符确认路径。
 - 工具链：`/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`；激活：`source /stm32env`（符号链接可能未建）或直接 `. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi`；**每个新终端窗口都要重新激活**，`echo $CC` 验证。
 - git 已配置（Gsheep0729 / 2697438381@qq.com）；远程 origin = `ssh://git@ssh.github.com:443/Gsheep0729/embedded-linux-stm32mp1.git`——走 443 备用端口，因为 Clash 代理会掐断 `github.com:22` 的 git 连接（报错 `Connection closed by 198.18.0.111 port 22`）；本地分支已改名 `main`。
 - U-Boot 源码（已打 6 个 ST 补丁，WORKING 分支 7 条提交）：`~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01`。
 - basic 版编译：`make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a` → 产物 `u-boot-spl.stm32`（FSBL）+ `u-boot.img`（SSBL）。
-- 串口：VirtualBox 抓板载 ST-Link 虚拟串口，115200；当前板子跑出厂固件（trusted 模式，DK1 设备树）。
+- 串口：Windows 上用 MobaXterm 的 Serial 会话连板载 ST-Link 虚拟串口（实测为 `COM11`），115200；板子现在从 SD 卡跑我们自己的 basic 版 U-Boot（正处在电源报错 + 复位循环状态，待 F-1 修复）。
+- SD 卡烧写：读卡器经 VMware 菜单「虚拟机 → 可移动设备」连接给虚拟机后识别为 `/dev/sdb`（29.8G Storage_Device，`lsblk` 确认，以实际为准）；分区只需做一次（清场 `sgdisk -Z` + 分区 `sgdisk -g` 建 5 区 fsbl1/fsbl2/ssbl/bootfs/rootfs），之后每次改 U-Boot 只需 dd 三个镜像到 sdb1/sdb2/sdb3。
 
-### 实验进度（2026-09-15）
+### 实验进度（2026-09-18）
 
-- ✅ 实验一 Slide 28-31（安装 SDK 工具链 + 辅助工具）；✅ 实验二 Slide 32-34（解压源码 + git am 6 个 ST 补丁）；✅ 实验三 Slide 35-42（basic 版配置 + 设备树 + 首次编译）。
-- ⬜ 下一步：Slide 43 起 SD 卡分区烧写 + 首次启动（拨码 101）；预期电源初始化失败不断复位（正常），随后进入 F-1~F-6 迭代修复（F-1 电源 → F-2 SD 卡 CD 引脚 → F-3 关 ADC → F-4 关 LTDC → F-5 国产网卡 → F-6 eMMC）；最后移植 trusted 版。
+- 已完成：实验一 Slide 28-31（安装 SDK 工具链 + 辅助工具）；实验二 Slide 32-34（解压源码 + git am 6 个 ST 补丁）；实验三 Slide 35-42（basic 版配置 + 设备树 + 首次编译）。
+- 已完成（2026-09-18）：实验四 Slide 43-49（SD 卡分区烧写 + 首次启动）——指导 `01实验/05_实验四_SD卡分区烧写与首次启动.md` 步骤 1~8 全部回填实测与截图（gdisk 已装、SD 卡锁定 `/dev/sdb`；传承卡旧 GPT 用 `parted mklabel msdos` 擦不掉，改用 `sgdisk -Z` 真正清场（输出 `GPT data structures destroyed!`，partprobe 后 sdb1~sdb5 消失）→ `sgdisk` 重建 5 分区成功（新 GUID `69CB63CB-…`）→ 三条 dd 已写入 sdb1/sdb2/sdb3 → MobaXterm COM11 抓到 SPL 日志 + 复位循环动图）。实测串口每轮输出：`U-Boot SPL 2020.01-stm32mp-r1-g3f0216e7-dirty (Sep 15 2026 - 23:15:55 +0800)` → `Model: …STM32MP157A-DK1 Discovery Board` → `stpmic1_read: failed to read register x : 32board_init_f: probe failed clk=0 reset=0 pinctrl=0 power=-110` → `RAM: DDR3-DDR3L 16bits 533000Khz` → `stpmic1_read: failed to read register x : 39ddr power init failed` → 空行 → `resetting ...`，无限循环 = 预期"电源报错 + 复位循环"（`32`/`39` 与后句挤在一行是本版 SPL 原样输出，不是转写错）。
+- 下一步：实验五 = F-1 电源设备树修复（Slide 50-59，含 .config 复制为 defconfig + git 提交收尾）；随后 F-2 SD 卡 CD 引脚 → F-3 关 ADC → F-4 关 LTDC → F-5 国产网卡 → F-6 eMMC；最后移植 trusted 版。
+- 实验五指导已写好（2026-09-18）：`01实验/06_实验五_F-1修改设备树电源配置.md`（Slide 50-59 → 步骤 1~10，各步骤留"实际执行结果：待补充"），待用户执行后回填实测输出与截图。
 - 后续实验材料在 `D:\桌面文件\资料\嵌入式linux`：`tf-a-stm32mp157a-fsmp1a-trusted.stm32`（trusted 版 TF-A）、`u-boot-网卡-MAE0621A驱动.rar`（F-5 的 phy.c/maxio.c/dwc_eth_qos.c）、`u-boot电源配置-设备树.dts`（F-1 参考）、`官方系统内核和设备树.zip`、kernel 相关 zip、buildroot/busybox 等。
 
 ### 实验踩坑记录（避免重复踩）
 
-- SDK 解压目录里**没有 `install.sh`**，安装脚本是长名字的 `st-image-weston-*.sh`；安装目标目录必须直接回车用默认 `/opt/st/...`（vboxsf 共享文件夹不支持符号链接，工具链不能装在里面）。
+- SDK 解压目录里**没有 `install.sh`**，安装脚本是长名字的 `st-image-weston-*.sh`；安装目标目录必须直接回车用默认 `/opt/st/...`（虚拟机共享文件夹不支持 Linux 符号链接，工具链不能装在里面）。
 - `git init` 必须在解压出的 `u-boot-stm32mp-2020.01` 子目录里执行；在外层 `r0` 目录执行会把补丁文件本身当源码提交，且 `../*.patch` 找不到补丁（`rm -rf .git` 后重来）。
 - `cc1: error: bad value ('generic-armv7-a') for '-mtune=' switch` = 当前终端没激活工具链，make 落到了 x86 宿主机 gcc（报错列出的 -mtune 参数全是 Intel/AMD CPU 即铁证）→ `source` 工具链后续编即可，无需 clean。
 - `fatal: 已经有一个 gc 正运行`、ST 补丁的空白字符警告（`new blank line at EOF`）均无害，忽略。
 - 编译在共享文件夹里能跑但慢，Ctrl+C 后 `make -j2` 可安全续编（进度保留）；若报符号链接/权限类错误，把源码移到虚拟机本地磁盘（如 `~/FS-MP1A/`）再编（挪动后需 `make distclean` + 重新 defconfig）。
+- `sudo parted -s /dev/sdb mklabel msdos` **无任何输出是正常的**（`-s` 脚本模式成功即静默、瞬间完成，不用等），但它**不会清掉旧 GPT**：实测复查 `sgdisk -p` 连磁盘 GUID 都不变（sgdisk 见 GPT 有效就继续按 GPT 显示）。要真清场用 `sudo sgdisk -Z /dev/sdb`（GPT、MBR 数据结构一并摧毁，官方定位就是"重新分区之前"用它），再 `sudo partprobe /dev/sdb` 刷新——`lsblk`/`/dev/sdbN` 只是内核缓存的旧分区表，不 partprobe 就永远显示旧分区。实测顺序：**先 partprobe 没用**（旧 GPT 还在，重读出来还是旧分区），必须 `-Z` 之后再 partprobe 才看到分区节点消失；`-Z` 的成功输出是 `GPT data structures destroyed!`。空盘上 `sgdisk -p` 显示 `Creating new GPT entries in memory.` + 一个随机 GUID（内存态，写盘才固定）。
+- `sgdisk -g` = `--mbrtogpt`（把 MBR 标签的盘转成 GPT），不是"使用 GPT 分区表"；在 MBR/BSD 标签的盘上写入必须带它，否则 sgdisk 拒绝写盘（退出码 3）。
+- **写 F 系列指导时的"标准答案"来源**：DK1 的 `stm32mp15xx-dkx.dtsi`（= 用户文件 `stm32mp15xx-fsmp1x.dtsi` 的原样拷贝，行号完全一致）可从 `D:\桌面文件\资料\嵌入式linux\en.SOURCES-*.tar.xz` 追出——外层 xz 里是 `u-boot-stm32mp-2020.01-r0.tar.gz`（内层不含 dkx.dtsi）+ 6 个补丁；dkx.dtsi 是补丁 0004（DEVICETREE）**新建**的文件，取该补丁 `new file mode` 段剥掉行首 `+` 即得全文（同理可解出任意 ST 源码文件，写后续指导前先核对实际内容再下笔）。
+- **F-1 文件锚点**（`stm32mp15xx-fsmp1x.dtsi`）：`/ {` 根节点 11~98 行，末尾**已有** `vin`（91~97），6 个固定电源追加在 vin 之后；`&cpu0`/`&cpu1` 在 134~140；`&i2c4` 整段 261~443（含 `stusb1600@28` 与 `pmic: stpmic@33`）；`&usbotg_hs` 在 736~747（只删 `port { ... };` 段，phys/phy-names/usb-role-switch/status 保留）。删 &i2c4 后仍被引用的电源标签即固定电源清单的由来：vdd（&adc/&vrefbuf）、v3v3（&sdmmc1/2 的 vmmc-supply）、v1v8_audio（音频）、v3v3_hdmi/v1v2_hdmi（HDMI）、vdd_usb（&usbphyc_port0/1 的 phy-supply）。
