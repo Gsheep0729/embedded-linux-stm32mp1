@@ -89,6 +89,9 @@ make menuconfig
 
 按课件给的两条路径逐个走。
 
+![menuconfig 两条路径总览](./08_实验七_F-3去掉ADC功能.assets/02_两条路径总览.png)
+> 图：课件 Slide 67——去掉 ADC 功能的两条菜单路径总览：`Command line interface ---> → Device access commands ---> → [ ] adc - Access Analog to Digital Converters info and data`；以及 `Device Drivers ---> → [ ] Enable ADC drivers using Driver Model`。两项都要去掉 `*`。
+
 **路径一：关掉 `adc` 命令**（Slide 67）
 
 主菜单 → `Command line interface --->` → `Device access commands --->`，找到这一行：
@@ -101,13 +104,10 @@ make menuconfig
 
 > menuconfig 小技巧：任何界面按 `/` 可按关键字搜索配置项，结果里直接给出该项所在的菜单路径——在两条路径之间迷路时，用它跳转最省事。
 
-两条路径总览与路径一的界面如下（课件截图）：
-
-![menuconfig 路径总览](./08_实验七_F-3去掉ADC功能.assets/02_menuconfig路径总览.png)
-> 图：课件 Slide 67——去掉 ADC 功能的菜单路径总览：`Command line interface ---> → Device access commands ---> → [ ] adc - Access Analog to Digital Converters info and data`；以及 `Device Drivers ---> → [ ] Enable ADC drivers using Driver Model`。
+路径一在 menuconfig 里的实际界面（课件截图）：
 
 ![Device access commands 子菜单](./08_实验七_F-3去掉ADC功能.assets/03_关闭adc命令.png)
-> 图：课件 Slide 67——`Command line interface → Device access commands` 子菜单：`[ ] adc - Access Analog to Digital Converters info and data` 高亮，此行不要选中（即去掉 `[*]` 里的 `*`）；同屏还有 armflash、bcb、bind/unbind、clk、dfu、dm、fastboot 等项，都不要动。
+> 图：课件 Slide 67——`Device access commands` 子菜单：高亮行 `[ ] adc - Access Analog to Digital Converters info and data` 已去掉 `*`；同屏的 `armflash`、`bcd`、`bind/unbind`、`clk`、`demo`、`dfu`、`dm`、`fastboot`、`fdcboot` 等其余命令保持原样，不要动。
 
 **路径二：关掉 ADC 驱动**（Slide 68）
 
@@ -131,7 +131,10 @@ grep -E "^# CONFIG_(CMD_)?ADC is not set" .config    # 预期恰好两行
 grep -E "^CONFIG_(CMD_)?ADC=y" .config               # 预期无输出
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+![menuconfig 后自检 ADC 已关闭](./08_实验七_F-3去掉ADC功能.assets/05_自检ADC已关闭.png)
+> 图：menuconfig 改完保存后的自检实测——`grep -E "^# CONFIG_(CMD_)?ADC is not set" .config` 恰好两行（`CONFIG_CMD_ADC` 与 `CONFIG_ADC` 均已 not set），`grep -E "^CONFIG_(CMD_)?ADC=y" .config` 无输出。
 
 ### 步骤 4：重新编译（沿用实验六流程）
 
@@ -141,7 +144,7 @@ make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a
 
 这次关掉的是 C 代码级的驱动，比实验六"只重编设备树"要重编、重链的东西多一些，但仍几分钟内完成，照样以 `MKIMAGE spl/u-boot-spl.stm32` 收尾。
 
-**实际执行结果**：待补充
+**实际执行结果**：编译收尾输出见下一步骤截图顶部（`MKIMAGE spl/u-boot-spl.stm32` → `COPY` → `CFGCHK u-boot.cfg`）。
 
 ### 步骤 5：烧写 SD 卡（沿用实验六流程）
 
@@ -154,41 +157,16 @@ sudo dd if=u-boot.img     of=/dev/sdb3 conv=fdatasync
 
 配置开关是编进镜像里的，SPL 和 U-Boot 本体的二进制都变了，三条照旧全烧。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+![重新编译并烧写 SD 卡](./08_实验七_F-3去掉ADC功能.assets/06_重新编译并烧写SD卡.png)
+> 图：重新编译与烧写实测——编译以 `MKIMAGE spl/u-boot-spl.stm32`、`COPY`、`CFGCHK u-boot.cfg` 收尾（截图顶部）；`lsblk` 确认 SD 卡仍是 `/dev/sdb`（sdb1~sdb5 齐全）；三条 dd 分别写入 sdb1、sdb2（各 98921 字节）与 sdb3，全部成功。
 
 ### 步骤 6：上电验证
 
 板子断电 → 插卡 → 拨码 `101` → 上电，看 MobaXterm 串口。
 
 **这一站的里程碑**：实验六日志里的三条 ADC 报错（`stm32 vrefbuf timed out` / `adc@0: can't enable vdd-supply!` / `single shot failed`）消失，其余行为不变——仍停在 `STM32MP>` 命令行。
-
-预期形态（版本时间戳等以你的实测为准；网卡与 bootm 的报错仍在，它们是 F-5 和"卡上还没有系统"的事，不归 F-3 管）：
-
-```
-U-Boot SPL 2020.01-stm32mp-r1-gXXXXXXX-dirty (Sep 18 2026 - ...)
-Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
-RAM: DDR3-DDR3L 16bits 533000Khz
-WDT:   Started with servicing (32s timeout)
-Trying to boot from MMC1
-
-U-Boot 2020.01-stm32mp-r1-gXXXXXXX-dirty (Sep 18 2026 - ...)
-
-CPU: STM32MP157AAA Rev.Z
-Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
-Board: stm32mp1 in basic mode (st,stm32mp157a-dk1)
-DRAM:  512 MiB
-Clocks:
-- MPU : 650 MHz
-...
-Loading Environment from MMC... OK
-In:    serial
-Out:   serial
-Err:   serial
-Net:   eth0: ethernet@5800a000
-Hit any key to stop autoboot:  0
-...
-STM32MP>
-```
 
 对照点：
 
@@ -197,9 +175,55 @@ STM32MP>
 | `Err: serial` 与 `Net:` 之间 | `stm32 vrefbuf timed out`、`adc@0: can't enable vdd-supply!`、`single shot failed` **不再出现**——原来占着这里的三行报错没了 |
 | 命令行 | 仍停在 `STM32MP>`，命令可用——去掉 ADC 没有影响其他功能 |
 
-> 若 `stm32 vrefbuf timed out: -110` 一条仍在而 `adc@0` 两条消失，也先记录下来照常收尾——`vrefbuf` 是"参考电压缓冲器"，严格说属于电源部分而非 ADC 驱动，残不残留以实测为准，到时把日志发来再定。
+**实际执行结果**（2026-09-18 实测）：
 
-**实际执行结果**：待补充
+```
+U-Boot SPL 2020.01-stm32mp-r1-g8de188df (Sep 18 2026 - 17:04:58 +0800)
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+RAM: DDR3-DDR3L 16bits 533000Khz
+WDT:   Started with servicing (32s timeout)
+Trying to boot from MMC1
+
+U-Boot 2020.01-stm32mp-r1-g8de188df (Sep 18 2026 - 17:04:58 +0800)
+
+CPU: STM32MP157AAA Rev.Z
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+Board: stm32mp1 in basic mode (st,stm32mp157a-dk1)
+DRAM:  512 MiB
+Clocks:
+- MPU : 650 MHz
+- MCU : 208.878 MHz
+- AXI : 266.500 MHz
+- PER : 24 MHz
+- DDR : 533 MHz
+WDT:   Started with servicing (32s timeout)
+NAND:  0 MiB
+MMC:   STM32 SD/MMC: 0
+Loading Environment from MMC... OK
+In:    serial
+Out:   serial
+Err:   serial
+Net:   eth0: ethernet@5800a000
+Hit any key to stop autoboot:  0
+EQOS_DMA_MODE_SWR stuckFAILED: -110EQOS_DMA_MODE_SWR stuckFAILED: -110Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+STM32MP>
+```
+
+**怎么解读这份输出：**
+
+| 看到什么 | 说明什么 |
+|---|---|
+| `Err: serial` 之后直接就是 `Net:`，原来挤在中间的三条 ADC 报错**全部消失** | **F-3 达标**。连 `stm32 vrefbuf timed out` 也没了——vrefbuf 给 ADC 供基准电压，ADC 驱动一关，"供基准 → 开 ADC → 采样"整条检测链不再执行 |
+| 版本串 `g8de188df` 后面**没有** `-dirty` 后缀 | `.config` 是不入库的构建产物（被 `.gitignore` 忽略），改 menuconfig 不会弄脏工作区；这个哈希正是实验六收尾时 F-2 的提交——顺带证明那步提交已完成 |
+| `EQOS_DMA_MODE_SWR stuck`×2、`Wrong Image Format for bootm command` 照旧 | 网卡（F-5 对象）与"卡上还没有内核"的报错，不归 F-3 管，与实验六完全一致 |
+| 停在 `STM32MP>` | 去掉 ADC 没有影响其他功能，命令行照常可用 |
+
+![串口 ADC 报错消失（动图）](./08_实验七_F-3去掉ADC功能.assets/07_串口ADC报错消失.gif)
+> 图：上电实测动图——从 SPL 到 U-Boot 本体的启动全程不再出现 `vrefbuf` / `adc@0` 报错，`Err: serial` 之后直接 `Net:`，autoboot 尝试失败后停在 `STM32MP>` 命令行。
+
+![串口完整启动日志](./08_实验七_F-3去掉ADC功能.assets/08_串口完整启动日志.png)
+> 图：串口完整启动日志截图（2026-09-18 17:04 构建的镜像，版本串 `g8de188df` 无 `-dirty`），与上文实测记录一致。
 
 ### 步骤 7：收尾——defconfig 同步 + git 提交
 
@@ -260,7 +284,7 @@ grep ADC configs/stm32mp15_fsmp1a_basic_defconfig     # 步骤 7 之后执行：
 
 - `.config` 与 `configs/stm32mp15_fsmp1a_basic_defconfig` 中 `CONFIG_ADC`、`CONFIG_CMD_ADC` 均为 not set
 - 重新编译成功，三个镜像已重新烧写到 sdb1 / sdb2 / sdb3
-- 串口不再出现 `stm32 vrefbuf timed out`、`adc@0: can't enable vdd-supply!`、`single shot failed`（vrefbuf 一条以实测为准，见步骤 6 提示）
+- 串口不再出现 `stm32 vrefbuf timed out`、`adc@0: can't enable vdd-supply!`、`single shot failed`
 - 串口仍停在 `STM32MP>` 命令行
 - 已完成 defconfig 同步与 git 提交（仅 1 个文件）
 
