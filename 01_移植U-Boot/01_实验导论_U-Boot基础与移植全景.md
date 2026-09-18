@@ -1,5 +1,7 @@
 # 实验导论：看懂 U-Boot，再谈移植
 
+> **对应课件**：《第3章 移植U-Boot》3.1~3.3 节，Slide 1-26
+>
 > **系列说明**：本系列基于华清远见 FS-MP1A（STM32MP157A）开发板，实验指导从课件《第3章 移植U-Boot》3.4 节开始（Slide 28 起）。本篇是全套实验的**先导篇**，覆盖 3.1~3.3 节的理论基础（Slide 1-26）——动手之前，先想明白三件事：Bootloader 是干什么的、为什么是 U-Boot、它的源码长什么样。文末给出整个实验系列的全景路线图。
 
 ## 一、按下电源之后，Linux 之前：Bootloader 是干什么的？
@@ -44,7 +46,7 @@ Bootloader 与内核的交互是**单向**的：交出控制权前，它要把�
 
 Linux 的引导程序很多，但阵营分明：
 
-![引导程序对比表](./01_实验导论_U-Boot基础与移植全景.assets/slide005_01.png)  
+![引导程序对比表](./01_实验导论_U-Boot基础与移植全景.assets/01_引导程序一览.png)  
 > 图：常见开源 Linux 引导程序一览。x86 阵营的 LILO、GRUB 等都不带 Monitor 功能；嵌入式领域的 BLOB、Vivi 只支持特定 ARM 芯片；U-Boot 是表中唯一"通用引导程序"，x86/ARM/PowerPC 通吃且带 Monitor 功能。
 
 x86 世界有 BIOS/UEFI + GRUB 这套成熟体系；而嵌入式世界**没有统一标准**，每家芯片的启动流程都不同。U-Boot 靠"通用"二字成为事实标准：支持多种处理器架构（PowerPC、ARM、x86、MIPS……）、多款嵌入式操作系统内核（Linux、VxWorks、QNX……），且开源（GPL）。
@@ -66,13 +68,13 @@ U-Boot（Universal Boot Loader）的前身是德国 DENX 软件工程中心基�
 
 这是全篇最重要的一节。U-Boot 源码不是一个东西，而是**三层叠加**的生态：
 
-![三种uboot的区别](./01_实验导论_U-Boot基础与移植全景.assets/slide014_09.png)  
+![三种uboot的区别](./01_实验导论_U-Boot基础与移植全景.assets/02_三种uboot的区别.png)  
 > 图：三种 uboot 的区别。官方 uboot：版本更新快，基本包含所有常用芯片；半导体厂商 uboot：针对自家芯片，支持比官方的更全面；开发板厂商 uboot：在半导体厂商基础上加入对自家开发板的支持。
 
 1. **U-Boot 官方源码**（DENX 社区维护，https://source.denx.de/u-boot/u-boot 或 https://ftp.denx.de/pub/u-boot/）——它其实也支持各厂商的芯片，但**绝对没有半导体厂商自己维护的全面**；
 2. **半导体厂商的定制版**——ST 在官方 2020.01-r0 的基础上定制出自己的版本（补丁 + 配置），专门支持 STM32MP1 系列。ST 的源码包解开后，`sources` 目录下 U-Boot 和其他几位"引导链兄弟"并排躺着：
 
-![ST sources 目录](./01_实验导论_U-Boot基础与移植全景.assets/slide013_08.png)  
+![ST sources 目录](./01_实验导论_U-Boot基础与移植全景.assets/03_SDK源码目录.png)  
 > 图：ST SDK 解压后 sources 目录：linux-stm32mp-5.4.31-r0（内核）、tf-a-stm32mp-2.2.r1-r0（第一级引导）、u-boot-stm32mp-2020.01-r0（红框，我们的主角）、optee-os-stm32mp-3.9.0.r1-r0（安全OS）。一块板子的引导与系统软件，就是由这几个包组装的。
 
 3. **开发板厂商的版本**——ST 的 U-Boot 只支持自家评估板，开发板厂商（如本课程的华清远见）在此基础上修改，支持自己的板子。FS-MP1A 出厂 U-Boot 就是这样来的。
@@ -87,7 +89,7 @@ U-Boot（Universal Boot Loader）的前身是德国 DENX 软件工程中心基�
 
 打完 ST 补丁、还没编译的 U-Boot 目录如下：
 
-![未编译的uboot目录](./01_实验导论_U-Boot基础与移植全景.assets/slide015_10.png)  
+![未编译的uboot目录](./01_实验导论_U-Boot基础与移植全景.assets/04_未编译的uboot目录.png)  
 > 图：未编译的 uboot 目录。编译后会多出一批生成物：.config、System.map、u-boot、u-boot.bin、u-boot.dtb、u-boot.stm32 等（以及对应的 .cmd 命令文件）。
 
 目录很多，但按"**这个目录回答什么问题**"分类就好记：
@@ -105,23 +107,23 @@ U-Boot（Universal Boot Loader）的前身是德国 DENX 软件工程中心基�
 
 `arch/arm/` 内部还有三层值得单独看清（我们只关注圈出的这几个）：
 
-![arch文件夹](./01_实验导论_U-Boot基础与移植全景.assets/slide018_13.png)  
+![arch文件夹](./01_实验导论_U-Boot基础与移植全景.assets/05_arch目录分类.png)  
 > 图：arch 目录按处理器架构分类：arm、m68k、mips、riscv、x86 等。我们使用 ARM 处理器，只关注 arm 目录。
 
-![arm文件夹](./01_实验导论_U-Boot基础与移植全景.assets/slide019_14.png)  
+![arm文件夹](./01_实验导论_U-Boot基础与移植全景.assets/06_arch-arm的mach目录.png)  
 > 图：arch/arm 下的 "mach-" 开头目录对应具体处理器系列。STM32MP1 对应 mach-stm32mp。
 
-![cpu文件夹](./01_实验导论_U-Boot基础与移植全景.assets/slide020_15.png)  
+![cpu文件夹](./01_实验导论_U-Boot基础与移植全景.assets/07_cpu目录分类.png)  
 > 图：arch/arm/cpu 按内核架构（指令集版本）分类。STM32MP1 是 Cortex-A7 内核（armv7 指令集），只关注 armv7 目录。
 
 所以从顶层一路点下来，我们这颗芯片的家在：**`arch/arm/mach-stm32mp` + `arch/arm/cpu/armv7`**。设备树则在 `arch/arm/dts/`——注意下面这张课件截图里已经出现了 `stm32mp157a-fsmp1a` 的文件，那是**移植完成后的状态**，你做实验三之前自己的目录里还没有它们：
 
-![dts文件夹](./01_实验导论_U-Boot基础与移植全景.assets/slide021_16.png)  
+![dts文件夹](./01_实验导论_U-Boot基础与移植全景.assets/08_dts目录.png)  
 > 图：arch/arm/dts 目录。每款开发板都有自己的 .dts/.dtsi 设备树（及编译生成的 .dtb）。截图中已有 fsmp1a 三件套，这是移植后的效果。
 
 `configs/` 目录同理——每块板一个 `xxx_defconfig`。截图里同样能看到 `stm32mp15_fsmp1a_basic_defconfig` 和 `stm32mp15_fsmp1a_trusted_defconfig`（高亮处），即移植完成后我们将会拥有的两个配置文件：
 
-![configs文件夹](./01_实验导论_U-Boot基础与移植全景.assets/slide023_18.png)  
+![configs文件夹](./01_实验导论_U-Boot基础与移植全景.assets/09_configs目录.png)  
 > 图：configs 目录存放各开发板的默认配置文件（xxx_defconfig）。截图中 stm32mp15_fsmp1a_basic/trusted_defconfig 为高亮，是本系列实验将要创建的目标。
 
 最后补一个历史沿革，理解了它就理解了为什么实验三要敲 `make xxx_defconfig`：

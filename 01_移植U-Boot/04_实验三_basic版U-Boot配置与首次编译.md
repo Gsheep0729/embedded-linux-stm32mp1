@@ -1,5 +1,7 @@
 # 实验三 basic 版 U-Boot 配置与首次编译——教 U-Boot 认识你的板子
 
+> **对应课件**：《第3章 移植U-Boot》3.5 节，Slide 35-42
+>
 > **系列说明**：本系列基于华清远见 FS-MP1A（STM32MP157A）开发板，对应课件《第3章 移植U-Boot》。本文覆盖 Slide 35-42。前置：实验二已完成（源码已打上 6 个 ST 补丁，位于 WORKING 分支）。
 
 ## 一、所谓"移植"，到底在移什么？
@@ -52,7 +54,7 @@ echo $CC
 
 **实际执行结果**：
 
-![image-20260915224757520](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915224757520.png)
+![激活工具链并验证](./04_实验三_basic版U-Boot配置与首次编译.assets/01_激活工具链.png)
 > 图：激活工具链并验证——执行 environment-setup 脚本后，`echo $CC` 输出 `arm-ostl-linux-gnueabi-gcc -mthumb -mfpu=neon-vfpv4 … --sysroot=/opt/st/…`：`$CC` 已指向交叉编译器，`--sysroot` 指向 SDK 内的目标系统库。
 
 ### 步骤 2：创建并加载 FS-MP1A 的 defconfig（Slide 36）
@@ -86,7 +88,7 @@ make menuconfig
 
 **实际执行结果**：
 
-![image-20260915230616813](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915230616813.png)
+![make menuconfig 配置界面](./04_实验三_basic版U-Boot配置与首次编译.assets/02_menuconfig界面.png)
 > 图：`make menuconfig` 打开的配置界面（U-Boot 2020.01-stm32mp-r1 Configuration）——首次编译不改任何配置，逛一圈直接退出；后面按串口报错修驱动时，这里是主战场。
 
 ### 步骤 4：复制设备树"三件套"（Slide 38）
@@ -136,7 +138,7 @@ nano arch/arm/dts/stm32mp157a-fsmp1a.dts
 
 **实际执行结果**：
 
-![image-20260915225328470](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915225328470.png)
+![设备树 include 段](./04_实验三_basic版U-Boot配置与首次编译.assets/03_设备树include段.png)
 > 图：`arch/arm/dts/stm32mp157a-fsmp1a.dts` 的 include 段（nano 编辑）——第 13 行已改为 `#include "stm32mp15xx-fsmp1x.dtsi"`（光标所在行），旧行 `stm32mp15xx-dkx.dtsi` 以注释保留便于回溯。
 
 **5.2 注册进 `arch/arm/dts/Makefile`（第 832 行附近）**
@@ -162,7 +164,7 @@ dtb-$(CONFIG_STM32MP15x) += \
 
 **实际执行结果**：
 
-![image-20260915225453720](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915225453720.png)
+![dts 的 Makefile](./04_实验三_basic版U-Boot配置与首次编译.assets/04_dts的Makefile.png)
 > 图：`arch/arm/dts/Makefile`（nano 编辑）——在 `dtb-$(CONFIG_STM32MP15x)` 列表里 `stm32mp157a-dk1.dtb` 之后新增一行 `stm32mp157a-fsmp1a.dtb \`（光标所在行）：注册进去，这份设备树才会被编译成 dtb。
 
 ### 步骤 6：首次编译（Slide 40）
@@ -181,7 +183,7 @@ make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a
 
 **实际执行结果**：
 
-![image-20260915225636719](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915225636719.png)
+![编译进行中](./04_实验三_basic版U-Boot配置与首次编译.assets/05_编译进行中.png)
 > 图：`make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a` 编译进行中——满屏 `CC`/`LD` 是逐个编译、链接 SPL 各模块（`spl/lib/...`、`spl/drivers/...`）的日志。
 
 ### 步骤 7：检查编译产物（Slide 42）
@@ -203,7 +205,7 @@ ls -la u-boot-spl.stm32 u-boot.img
 
 **实际执行结果**：
 
-![image-20260915231801732](./04_实验三_basic版U-Boot配置与首次编译.assets/image-20260915231801732.png)
+![编译产物确认](./04_实验三_basic版U-Boot配置与首次编译.assets/06_编译产物确认.png)
 > 图：编译收尾与产物确认——`MKIMAGE spl/u-boot-spl.stm32` 给 SPL 加上 ST 签名头（最后一步）；`ls -la` 显示两个产物已生成：`u-boot-spl.stm32` 101016 字节、`u-boot.img` 867417 字节，时间戳 9月15日 23:15。
 
 ---

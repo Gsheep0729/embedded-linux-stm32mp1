@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `PPT/*.md` + `PPT/images/` 是**git 跟踪的唯一内容**，也是知识的权威载体（描述行中逐字转录了截图里的 menuconfig 路径、配置项、命令行等）。
 - 原始课件 `.dps`/`.pptx` 保留在磁盘上但被 git 忽略。若 md 描述存疑，以原 PPT 截图为准。
-- `01实验/` 存放实验产物与实验指导（工作流和环境见下方「实验部分」）；其中大体积安装包（`*.zip`/`*.tar.xz`）及解压出的 SDK 目录（`en.SDK-*/`）被忽略，实验代码可正常跟踪。
+- `01_移植U-Boot/` 存放博客原稿（实验导论 + 各实验指导，工作流和环境见下方「实验部分」）——章节目录按 PPT 大纲命名、带阅读顺序序号；大体积安装包（`*.zip`/`*.tar.xz`）及解压出的 SDK 目录（`en.SDK-*/`）被 git 忽略，随对应实验材料一起放在章节目录里（如 `01_移植U-Boot/` 内的 SDK 安装包与解压目录），不入库。
 
 ## md 文件结构与约定
 
@@ -34,19 +34,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 改动 md 后应确认：旧格式死链（`![图片 x](图片x.jpg)`）为 0、每条引用下一行是 `> 图：` 行、引用文件均存在、`<!-- Slide number:` 数量不变。
 
-## 实验部分（01实验/）
+## 实验部分（01_移植U-Boot/）
 
 FS-MP1A（STM32MP157A）实验课：在 VMware 的 Ubuntu 20.04 虚拟机里做交叉编译，把 U-Boot/内核烧到开发板。当前实验对应课件《第3章 移植U-Boot》，按 Slide 范围拆成多个实验。
 
 ### 实验工作流
 
-- 每个实验一份指导文件 `01实验/NN_实验N_内容.md`（博客命名规则见下），范围对应课件的具体 Slide；开头有"课件 ↔ 步骤"对应表，正文为：实验目的 → 实验环境 → 实验步骤 → 注意事项 → 完成标志 → 后续实验预告。
+- 每个实验一份指导文件 `01_移植U-Boot/NN_实验N_内容.md`（博客命名规则见下），范围对应课件的具体 Slide；开头有"课件 ↔ 步骤"对应表，正文为：实验目的 → 实验环境 → 实验步骤 → 注意事项 → 完成标志 → 后续实验预告。
+- **文档开头标注课件 Slide 范围（用户指定，2026-09-18）**：每篇实验文档标题下「系列说明」引用块的**首行**固定写 `> **对应课件**：《第N章 …》X.Y 节，Slide A-B`，便于对照课件原文快速定位；新文档照此格式补齐。当前映射：导论 3.1~3.3 节 Slide 1-26、实验一 3.4 节 28-31、实验二 3.4 节 32-34、实验三 3.5 节 35-42、实验四 3.5 节 43-49、实验五 3.5 节 50-59（第3章共 87 页：3.1=1-5、3.2=6-14、3.3=15-26、3.4=27-34、3.5=35-81、3.6=82-87）。
 - 实验开始前：写指导（命令 + 预期输出 + 注意事项），各步骤留"**实际执行结果**：待补充"占位。
 - 用户在虚拟机里执行，把终端输出贴回对话（原始记录由用户存到 `testN.md`），完成后把真实输出合并进指导文件：替换"待补充"、勾选完成标志——二者合二为一。
 - 用户会自己往指导文件里插截图（`实验N ...assets/` 目录）并编辑文件——**每次编辑指导文件前必须重新 Read**，文件经常在对话间隙被用户更新。
 - 用户偏好：指导文件只写正确流程，走弯路的尝试不写入（实验一的 SDK 误装目录已按要求删除）；但无害报错的解释（如 gc 冲突）可以保留。
-- **博客文档图片规范（Typora 规则）**：博客发布的 md（01实验 各指导/导论 + 根目录专栏总导论）图片一律复制到 `./${md文件名}.assets/` 文件夹，引用写 `./${md文件名}.assets/xxx.png`——**禁止 `../PPT/images` 跨目录引用**（博客平台不解析）；PPT/*.md 仍用 `images/chapNN/` 共享图库不动。新写博客文档时先建 assets 文件夹再写引用。
-- **博客文档命名规则（用户指定，2026-09-16）**：博客 md 及 assets 文件名**不含空格**，统一 `NN_短标题.md`——NN 为两位序号，按专栏全局阅读顺序递增（文件名排序即阅读顺序，方便索引）；下划线分词（避免与 U-Boot、F-1 内部连字符混淆）；assets 文件夹严格同名加 `.assets`。已定名：根目录 `00_专栏总导论_嵌入式Linux全景与学习路线.md`；01实验：`01_实验导论_U-Boot基础与移植全景.md`、`02_实验一_安装交叉编译工具链.md`、`03_实验二_获取U-Boot源码并打ST补丁.md`、`04_实验三_basic版U-Boot配置与首次编译.md`。后续（实验四、F 系列、trusted、第4~10章实验）从 05 续编。testN.md、PPT/*.md、CLAUDE.md 不适用此规则。
+- **博客文档图片规范（Typora 规则）**：博客发布的 md（01_移植U-Boot/ 各指导/导论 + 根目录专栏总导论）图片一律复制到 `./${md文件名}.assets/` 文件夹，引用写 `./${md文件名}.assets/xxx.png`——**禁止 `../PPT/images` 跨目录引用**（博客平台不解析）；PPT/*.md 仍用 `images/chapNN/` 共享图库不动。新写博客文档时先建 assets 文件夹再写引用。
+- **博客文档命名规则（用户指定，2026-09-16）**：博客 md 及 assets 文件名**不含空格**，统一 `NN_短标题.md`——NN 为两位序号，按专栏全局阅读顺序递增（文件名排序即阅读顺序，方便索引）；下划线分词（避免与 U-Boot、F-1 内部连字符混淆）；assets 文件夹严格同名加 `.assets`。已定名：根目录 `00_专栏总导论_嵌入式Linux全景与学习路线.md`；01_移植U-Boot/：`01_实验导论_U-Boot基础与移植全景.md`、`02_实验一_安装交叉编译工具链.md`、`03_实验二_获取U-Boot源码并打ST补丁.md`、`04_实验三_basic版U-Boot配置与首次编译.md`。后续（实验四、F 系列、trusted、第4~10章实验）从 05 续编。testN.md、PPT/*.md、CLAUDE.md 不适用此规则。
+- **博客 assets 图片命名（用户指定，2026-09-18）**：assets 内的图片按所在文档的阅读顺序命名 `NN_短标签.ext`（NN 两位、从 01 起；短标签取自图注、不含空格），目录内按文件名排序 = 文中出现顺序；插入新图后需对后续图片重编号并同步更新正文引用。图片 alt 文本写中文短描述（同系列既有文档），不要留 Typora 原始文件名（`image-2026…`）。
+- **仓库目录结构（用户指定，2026-09-18）**：博客文档按课件章节建仓库根级目录，命名 `NN_章节名`（NN = 阅读顺序、不含空格），章节目录内“文档 + 同名 .assets”平铺（不再按实验分子目录）；当前 `01_移植U-Boot/` 对应第 3 章 移植U-Boot，后续章节依次接 `02_使用U-Boot`、`03_移植Linux内核`……；`00_专栏总导论` 留仓库根目录。
 - **博客文档不写“当前进度”**（用户指定，2026-09-18）：博客 md（专栏导论、实验导论、各实验指导）里不放「状态：已完成/进行中」「专栏目录（持续更新）」这类会随发布时间过期、需要反复同步的内容——一律写成对任何时间点的读者都成立的“写死”表述；真实的实验进度**只记录在本文件「实验进度」一节**（各实验内部的「完成标志」勾选表属于该篇实验的固定记录，保留）。
 
 ### 实验环境（截至 2026-09-15，有变化以用户终端为准）
@@ -64,9 +67,9 @@ FS-MP1A（STM32MP157A）实验课：在 VMware 的 Ubuntu 20.04 虚拟机里做�
 ### 实验进度（2026-09-18）
 
 - 已完成：实验一 Slide 28-31（安装 SDK 工具链 + 辅助工具）；实验二 Slide 32-34（解压源码 + git am 6 个 ST 补丁）；实验三 Slide 35-42（basic 版配置 + 设备树 + 首次编译）。
-- 已完成（2026-09-18）：实验四 Slide 43-49（SD 卡分区烧写 + 首次启动）——指导 `01实验/05_实验四_SD卡分区烧写与首次启动.md` 步骤 1~8 全部回填实测与截图（gdisk 已装、SD 卡锁定 `/dev/sdb`；传承卡旧 GPT 用 `parted mklabel msdos` 擦不掉，改用 `sgdisk -Z` 真正清场（输出 `GPT data structures destroyed!`，partprobe 后 sdb1~sdb5 消失）→ `sgdisk` 重建 5 分区成功（新 GUID `69CB63CB-…`）→ 三条 dd 已写入 sdb1/sdb2/sdb3 → MobaXterm COM11 抓到 SPL 日志 + 复位循环动图）。实测串口每轮输出：`U-Boot SPL 2020.01-stm32mp-r1-g3f0216e7-dirty (Sep 15 2026 - 23:15:55 +0800)` → `Model: …STM32MP157A-DK1 Discovery Board` → `stpmic1_read: failed to read register x : 32board_init_f: probe failed clk=0 reset=0 pinctrl=0 power=-110` → `RAM: DDR3-DDR3L 16bits 533000Khz` → `stpmic1_read: failed to read register x : 39ddr power init failed` → 空行 → `resetting ...`，无限循环 = 预期"电源报错 + 复位循环"（`32`/`39` 与后句挤在一行是本版 SPL 原样输出，不是转写错）。
+- 已完成（2026-09-18）：实验四 Slide 43-49（SD 卡分区烧写 + 首次启动）——指导 `01_移植U-Boot/05_实验四_SD卡分区烧写与首次启动.md` 步骤 1~8 全部回填实测与截图（gdisk 已装、SD 卡锁定 `/dev/sdb`；传承卡旧 GPT 用 `parted mklabel msdos` 擦不掉，改用 `sgdisk -Z` 真正清场（输出 `GPT data structures destroyed!`，partprobe 后 sdb1~sdb5 消失）→ `sgdisk` 重建 5 分区成功（新 GUID `69CB63CB-…`）→ 三条 dd 已写入 sdb1/sdb2/sdb3 → MobaXterm COM11 抓到 SPL 日志 + 复位循环动图）。实测串口每轮输出：`U-Boot SPL 2020.01-stm32mp-r1-g3f0216e7-dirty (Sep 15 2026 - 23:15:55 +0800)` → `Model: …STM32MP157A-DK1 Discovery Board` → `stpmic1_read: failed to read register x : 32board_init_f: probe failed clk=0 reset=0 pinctrl=0 power=-110` → `RAM: DDR3-DDR3L 16bits 533000Khz` → `stpmic1_read: failed to read register x : 39ddr power init failed` → 空行 → `resetting ...`，无限循环 = 预期"电源报错 + 复位循环"（`32`/`39` 与后句挤在一行是本版 SPL 原样输出，不是转写错）。
 - 下一步：实验五 = F-1 电源设备树修复（Slide 50-59，含 .config 复制为 defconfig + git 提交收尾）；随后 F-2 SD 卡 CD 引脚 → F-3 关 ADC → F-4 关 LTDC → F-5 国产网卡 → F-6 eMMC；最后移植 trusted 版。
-- 实验五指导已写好（2026-09-18）：`01实验/06_实验五_F-1修改设备树电源配置.md`（Slide 50-59 → 步骤 1~10，各步骤留"实际执行结果：待补充"），待用户执行后回填实测输出与截图。
+- 实验五指导已写好（2026-09-18）：`01_移植U-Boot/06_实验五_F-1修改设备树电源配置.md`（Slide 50-59 → 步骤 1~10，各步骤留"实际执行结果：待补充"），待用户执行后回填实测输出与截图。
 - 后续实验材料在 `D:\桌面文件\资料\嵌入式linux`：`tf-a-stm32mp157a-fsmp1a-trusted.stm32`（trusted 版 TF-A）、`u-boot-网卡-MAE0621A驱动.rar`（F-5 的 phy.c/maxio.c/dwc_eth_qos.c）、`u-boot电源配置-设备树.dts`（F-1 参考）、`官方系统内核和设备树.zip`、kernel 相关 zip、buildroot/busybox 等。
 
 ### 实验踩坑记录（避免重复踩）
