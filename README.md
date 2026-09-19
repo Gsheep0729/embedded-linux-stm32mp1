@@ -47,9 +47,8 @@
 
 ## 路线图
 
-- F-1~F-6：按串口报错迭代修复（电源 → SD 检测 → ADC → 显示 → 网卡 → eMMC）
-- trusted 版 U-Boot 移植
-- 第 4~10 章实验：U-Boot 使用、Linux 内核移植、根文件系统（BusyBox/Buildroot）、字符设备驱动、GPIO、设备树、Qt GUI
+- [x] 第 3 章「移植 U-Boot」全系列（实验导论 + 实验一~十一：F-1~F-6 驱动修复、trusted 版收官）——见上方导读 01~12
+- [ ] 第 4~10 章实验：U-Boot 使用、Linux 内核移植、根文件系统（BusyBox/Buildroot）、字符设备驱动、GPIO、设备树、Qt GUI
 
 ## 版权说明
 

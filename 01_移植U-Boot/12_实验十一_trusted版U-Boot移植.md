@@ -94,7 +94,7 @@ make stm32mp15_fsmp1a_trusted_defconfig
 ls configs/stm32mp15_fsmp1a_*    # 应有两个：basic 与 trusted
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：四条命令依次执行完成（本站未单独截图）。旁证有二：`ls configs/stm32mp15_fsmp1a_*` 应见 basic 与 trusted 两个文件；步骤 3 的三处 `.config` 自检全部命中——说明加载的已是 trusted 配置基底。
 
 ### 步骤 3：menuconfig 把 basic 版的配置改动原样重做（Slide 84）
 
@@ -111,7 +111,10 @@ make menuconfig
 | 关掉 `Enable ADC drivers using Driver Model` | `Device Drivers --->` | F-3（实验七） |
 | 勾选 `supports the Maxio MAEXXXX PHY` | `Device Drivers --->` → `Ethernet PHY (physical media interface) support --->` | F-5（实验九） |
 
-退出时保存确认框选 `<Yes>`。自检（三条都要过）：
+![menuconfig 找到 STPMIC1 实测](./12_实验十一_trusted版U-Boot移植.assets/01_menuconfig找到STPMIC1实测.png)
+> 图：menuconfig 实测——`Device Drivers → Power` 子菜单里的 `[*] Enable support for STMicroelectronics STPMIC1 PMIC`（高亮行，basic 阶段 F-1 关掉的就是它）；留意紧邻其下还有一条同以 PALMAS 结尾的 TI 电源芯片项，别按错行。
+
+按 N 取消勾选、空格是勾选，退出时保存确认框选 `<Yes>`。自检（三条都要过）：
 
 ```bash
 grep "STPMIC1" .config                                 # 期望：# CONFIG_PMIC_STPMIC1 is not set
@@ -127,7 +130,10 @@ cp .config configs/stm32mp15_fsmp1a_trusted_defconfig
 
 > **F-2/F-4/F-6 为什么不用重做？** 那三站改的是设备树文件——文件躺在源码里，basic、trusted 两种配置编译时读的是同一份，天然继承。要重做的只有"只记录在 `.config` 里"的配置改动，即 F-1、F-3、F-5。
 
-**实际执行结果**：待补充
+**实际执行结果**：三处自检全部命中：
+
+![三站四处自检实测](./12_实验十一_trusted版U-Boot移植.assets/02_menuconfig自检实测.png)
+> 图：自检实测——`# CONFIG_PMIC_STPMIC1 is not set`（F-1）、`# CONFIG_CMD_ADC is not set` 与 `# CONFIG_ADC is not set` 恰好两行（F-3）、`CONFIG_PHY_MAXIO=y`（F-5）：trusted 配置的三站四处全部就位。
 
 ### 步骤 4：编译，产出 `u-boot.stm32`（Slide 84）
 
@@ -141,7 +147,7 @@ make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a
 ls -l u-boot.stm32
 ```
 
-![编译产物 u-boot.stm32](./12_实验十一_trusted版U-Boot移植.assets/01_编译产物u-boot.stm32.png)
+![编译产物 u-boot.stm32](./12_实验十一_trusted版U-Boot移植.assets/03_编译产物u-boot.stm32.png)
 > 图：课件 Slide 84——trusted 版编译成功后，u-boot 顶层目录执行 `ls` 的结果：`api`、`arch`、`board` 等目录与 `u-boot`、`u-boot.bin`、`u-boot.cfg`、`u-boot.dtb` 等文件并列，红框标出的 **`u-boot.stm32`** 即 trusted 版 U-Boot 的可执行文件。
 
 留意两处与 basic 版编译的不同：
@@ -149,7 +155,10 @@ ls -l u-boot.stm32
 - **这次没有 `u-boot-spl.stm32`**：trusted 配置下 SPL 不参与构建——FSBL 的活整个交给 TF-A，U-Boot 直接以打包好的 `u-boot.stm32` 面世；
 - 设备树里那大段时钟树、PMIC 标记（`&rcc` 的 `st,clksrc/st,clkdiv`、`&pmic` 的 `u-boot,dm-pre-reloc`、`&sdmmc1` 的 `u-boot,dm-spl` 等）在文件里都包在 `#ifndef CONFIG_STM32MP1_TRUSTED` 条件段里——trusted 编译时自动剔除。电源、时钟改由 TF-A 负责，U-Boot 不再亲自操心，这是两种模式在设备树层面的分水岭。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+![编译收尾实测](./12_实验十一_trusted版U-Boot移植.assets/04_编译收尾实测.png)
+> 图：编译收尾实测——`MKIMAGE u-boot.stm32`（绿框）是 trusted 版的最终打包步骤，收尾不见 SPL 的 `MKIMAGE spl/u-boot-spl.stm32`——SPL 确实缺席了这次构建；`ls -l u-boot.stm32` 报 855605 字节、14:51 生成。
 
 ### 步骤 5：把出厂 TF-A 拷进虚拟机（Slide 85）
 
@@ -162,7 +171,10 @@ ls -l tf-a-stm32mp157a-fsmp1a-trusted.stm32 u-boot.stm32
 
 （路径按你实际放置的位置调整。）
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+![TF-A 拷入实测](./12_实验十一_trusted版U-Boot移植.assets/05_TF-A拷入实测.png)
+> 图：实测——出厂 TF-A（241984 字节，资料包原始日期 2025-12-25）与 `u-boot.stm32`（855605 字节，14:51）已在源码顶层并排就位，只等烧写。
 
 ### 步骤 6：烧写——灌的东西换了（Slide 85）
 
@@ -171,7 +183,10 @@ lsblk                                   # 先确认 SD 卡仍是 /dev/sdb
 sudo dd if=tf-a-stm32mp157a-fsmp1a-trusted.stm32 of=/dev/sdb1 conv=fdatasync
 sudo dd if=tf-a-stm32mp157a-fsmp1a-trusted.stm32 of=/dev/sdb2 conv=fdatasync
 sudo dd if=u-boot.stm32 of=/dev/sdb3 conv=fdatasync
+sudo eject /dev/sdb                     # 弹出 SD 卡（命令行版"安全弹出"），之后直接拔卡插板
 ```
+
+最后一条 `sudo eject /dev/sdb` 是"弹出 SD 卡"的命令行等价：`dd` 的 `conv=fdatasync` 已保证数据落盘，`eject` 再把分区卸载干净、让系统松开设备——此后直接拔卡插板即可，不必再去文件管理器手动点弹出。（若 eject 后读卡器从虚拟机断开，下次烧写前用「虚拟机 → 可移动设备」重新连上即可。）
 
 与 basic 版的烧写命令对比，变化全在"灌什么"：
 
@@ -185,7 +200,51 @@ TF-A 照样烧两份——与实验四 SPL 烧两份同理：fsbl1/fsbl2 互为�
 
 > 卡上的 basic 版镜像被这次烧写覆盖了。想回 basic 版：`make stm32mp15_fsmp1a_basic_defconfig` → `make` → 重烧三条 basic 镜像即可，源码与配置都在版本库里。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ lsblk
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+loop0    7:0    0     4K  1 loop /snap/bare/5
+loop1    7:1    0  63.8M  1 loop /snap/core20/2769
+loop2    7:2    0  63.8M  1 loop /snap/core20/2922
+loop3    7:3    0 248.8M  1 loop /snap/gnome-3-38-2004/99
+loop4    7:4    0  91.7M  1 loop /snap/gtk-common-themes/1535
+loop5    7:5    0  48.4M  1 loop /snap/snapd/26382
+loop6    7:6    0 531.5M  1 loop /snap/gnome-42-2204/263
+loop7    7:7    0 349.7M  1 loop /snap/gnome-3-38-2004/143
+loop8    7:8    0  12.2M  1 loop /snap/snap-store/1216
+loop9    7:9    0    74M  1 loop /snap/core22/2955
+loop10   7:10   0  65.2M  1 loop /snap/gtk-common-themes/1519
+loop11   7:11   0  54.2M  1 loop /snap/snap-store/558
+loop12   7:12   0  50.3M  1 loop /snap/snapd/27738
+sda      8:0    0   100G  0 disk 
+├─sda1   8:1    0   512M  0 part /boot/efi
+├─sda2   8:2    0     1K  0 part 
+└─sda5   8:5    0  99.5G  0 part /
+sdb      8:16   1  29.8G  0 disk 
+├─sdb1   8:17   1   256K  0 part 
+├─sdb2   8:18   1   256K  0 part 
+├─sdb3   8:19   1     2M  0 part 
+├─sdb4   8:20   1    64M  0 part 
+└─sdb5   8:21   1  29.7G  0 part 
+sr0     11:0    1   3.2G  0 rom  /media/cnu/Ubuntu 20.04.4 LTS amd64
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ sudo dd if=tf-a-stm32mp157a-fsmp1a-trusted.stm32 of=/dev/sdb1 conv=fdatasync
+[sudo] cnu 的密码： 
+记录了472+1 的读入
+记录了472+1 的写出
+241984字节（242 kB，236 KiB）已复制，0.282562 s，856 kB/s
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ sudo dd if=tf-a-stm32mp157a-fsmp1a-trusted.stm32 of=/dev/sdb2 conv=fdatasync
+记录了472+1 的读入
+记录了472+1 的写出
+241984字节（242 kB，236 KiB）已复制，0.272525 s，888 kB/s
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ sudo dd if=u-boot.stm32 of=/dev/sdb3 conv=fdatasync
+记录了1671+1 的读入
+记录了1671+1 的写出
+855605字节（856 kB，836 KiB）已复制，0.976941 s，876 kB/s
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ 
+
+```
 
 ### 步骤 7：上电验证（Slide 86）
 
@@ -202,24 +261,143 @@ Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)
 
 `trusted mode` 一出现，trusted 版移植即告成功。其余成果应全线保持：`MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1`（F-6 在）、`Net:   eth0: ethernet@5800a000`（F-5 在）、无电源报错（F-1 在）、无 ADC 报错（F-3 在），最终停在 `STM32MP>`。
 
-![trusted 版串口日志](./12_实验十一_trusted版U-Boot移植.assets/02_trusted版串口日志.png)
+![trusted 版串口日志](./12_实验十一_trusted版U-Boot移植.assets/06_trusted版串口日志.png)
 > 图：课件 Slide 86——trusted 版 U-Boot 的串口输出：`Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)`、`DRAM: 512 MiB`、`MMC: STM32 SD/MMC: 0, STM32 SD/MMC: 1`、`Loading Environment from MMC... OK`、`Net: eth0: ethernet@5800a000`、`Hit any key to stop autoboot: 0`，进入 `STM32MP>` 命令行。
 
 > 课件截图的版本串是 `2020.01-stm32mp-r1-gae7d1c12 (Jun 15 2023 ...)`——那是华清演示时的构建；我们编出来的版本串哈希与时间戳必然不同，正常。看准的是 `in trusted mode` 那一行，不是哈希。按版本串接力规律，本次构建应从 `g88f08870`（F-6 提交）起跳；且 trusted 流程的配置改动落在 `.config`（不入库）与**新增的** defconfig（提交前只是 untracked 文件）里，都不弄脏工作区——版本串预计**不带 `-dirty`**，与 basic 阶段 F 系列构建全带 `-dirty` 形成有趣对照。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+NOTICE:  CPU: STM32MP157AAA Rev.Z
+NOTICE:  Model: HQYJ FS-MP1A Discovery Board
+INFO:    Reset reason (0x15):
+INFO:      Power-on Reset (rst_por)
+INFO:    Using SDMMC
+INFO:      Instance 1
+INFO:    Boot used partition fsbl1
+NOTICE:  BL2: v2.2-r1.0(debug):a70053f
+NOTICE:  BL2: Built : 09:55:29, Nov  5 2020
+INFO:    Using crypto library 'stm32_crypto_lib'
+INFO:    BL2: Doing platform setup
+INFO:    RAM: DDR3-DDR3L 16bits 533000Khz
+INFO:    Memory size = 0x20000000 (512 MB)
+INFO:    BL2 runs SP_MIN setup
+INFO:    BL2: Loading image id 4
+INFO:    Loading image id=4 at address 0x2ffed000
+INFO:    Image id=4 loaded: 0x2ffed000 - 0x2ffff000
+INFO:    BL2: Loading image id 5
+INFO:    Loading image id=5 at address 0xc0100000
+INFO:    STM32 Image size : 855349
+INFO:    Image id=5 loaded: 0xc0100000 - 0xc01d0d35
+WARNING: Skip signature check (header option)
+NOTICE:  ROTPK is not deployed on platform. Skipping ROTPK verification.
+NOTICE:  BL2: Booting BL32
+INFO:    Entry point address = 0x2ffed000
+INFO:    SPSR = 0x1d3
+INFO:    Cannot find st,stpmic1 node in DT
+NOTICE:  SP_MIN: v2.2-r1.0(debug):a70053f
+NOTICE:  SP_MIN: Built : 09:55:29, Nov  5 2020
+INFO:    ARM GICv2 driver initialized
+INFO:    stm32mp IWDG1 (12): Secure
+INFO:    ETZPC: CRYP1 (9) could be non secure
+INFO:    SP_MIN: Initializing runtime services
+INFO:    SP_MIN: Preparing exit to normal world
+
+
+U-Boot 2020.01-stm32mp-r1-g88f08870-dirty (Sep 19 2026 - 14:51:04 +0800)
+
+CPU: STM32MP157AAA Rev.Z
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)
+DRAM:  512 MiB
+Clocks:
+- MPU : 650 MHz
+- MCU : 208.878 MHz
+- AXI : 266.500 MHz
+- PER : 24 MHz
+- DDR : 533 MHz
+WDT:   Started with servicing (32s timeout)
+NAND:  0 MiB
+MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1
+Loading Environment from MMC... OK
+In:    serial
+Out:   serial
+Err:   serial
+Net:   eth0: ethernet@5800a000
+Hit any key to stop autoboot:  0
+Boot over mmc0!
+switch to partitions #0, OK
+mmc0 is current device
+** Unrecognized filesystem type **
+STM32MP>
+```
+
+逐行看这份日志——这是一场"两个世界"的接力：
+
+**TF-A 段**（`NOTICE:` / `INFO:` 开场，没有 SPL 横幅——FSBL 换人，看得见）：
+
+- `Model: HQYJ FS-MP1A Discovery Board`——华清出厂 TF-A 自报家门"FS-MP1A"；而紧接着的 U-Boot 段报的却是 `STM32MP157A-DK1 Discovery Board`——我们沿用的是 DK1 设备树（课件的做法，F 系列从没改过 Model 字符串）。FSBL 与 SSBL 各说各的，正是"出厂 TF-A + 自移植 U-Boot"这个组合留下的有趣烙印；
+- `Boot used partition fsbl1`——TF-A 从 fsbl1（sdb1）起跳，烧的两份里第一份就干了活；
+- `BL2: v2.2-r1.0(debug):a70053f`、`Built : 09:55:29, Nov 5 2020`——出厂 TF-A 的版本与构建日期，解读方式与 U-Boot 版本串同理（这份 2020 年的固件，比我们的实验早了六年）；
+- `STM32 Image size : 855349`——TF-A 从 ssbl 分区读到的 U-Boot 大小。我们 dd 的 `u-boot.stm32` 是 855605 字节，855605 − 855349 = **256 = STM32 镜像头大小**——数字对上了，加载的正是我们编的那个文件；
+- `Cannot find st,stpmic1 node in DT`——眼熟吗？FS-MP1A 板上根本没有 STPMIC1 这颗 PMIC（正是 F-1 的病根），华清改 TF-A 时同样把它的节点删了，这条 INFO 只是"按 DK1 模板找而没找到"的说明，不影响引导；
+- `WARNING: Skip signature check`、`ROTPK is not deployed`——出厂镜像没部署签名校验，开发板上的常态，忽略。
+
+**U-Boot 段**：
+
+- 版本串 `g88f08870-dirty (Sep 19 2026 - 14:51:04 +0800)`——哈希 = F-6 提交，**接力预测兑现**；但**带了 `-dirty`，与"无 `-dirty`"的预测不符**。破案在步骤 8：`git status --short` 显示已跟踪文件一个没动、只有两个**未跟踪**新文件（trusted defconfig 与 TF-A 素材）——对照 F-3 那次"变动的只有被忽略的 `.config` → 无 `-dirty`"，可以定位：**本版 U-Boot 的 dirty 判定把未跟踪文件也算数**（被忽略的不算）。这两个 `??` 一天躺在仓库里，版本串就一天带着 `-dirty`；按步骤 8 提交并忽略之后，下次构建就是一个干干净净的新哈希；
+- `Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)`——**本站里程碑达成**；
+- `MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1`——F-6 的设备树天然继承（aliases 的 `mmc1` 在 `#ifndef` 段之外，trusted 保留）；`Net:   eth0: ethernet@5800a000`——F-5 在；无电源报错（F-1 在）、无 ADC 报错（F-3 在）——全线保持；
+- `Loading Environment from MMC... OK`——basic 阶段 `saveenv` 存下的环境（在 ssbl 分区里，与 U-Boot 版本无关）对 trusted 版照样有效；倒计时归零 → `Boot over mmc0!` → `** Unrecognized filesystem type **` 落回 `STM32MP>`——老剧本照旧，卡上没内核仍是后续章节的课题。
+
+![trusted 串口完整日志实测](./12_实验十一_trusted版U-Boot移植.assets/07_串口完整日志实测.png)
+> 图：MobaXterm（COM11）实测完整日志——TF-A 的 `NOTICE:`/`INFO:` 开场、U-Boot `in trusted mode`、`MMC: 0, 1` 双控制器、`Net: eth0`，最终停在 `STM32MP>`，与上方文本日志同一次启动。
+
+![串口动图](./12_实验十一_trusted版U-Boot移植.assets/08_串口动图.gif)
+> 图：上电到 `STM32MP>` 命令行的启动过程动图——TF-A 引导日志先行，U-Boot 横幅接力登场。
 
 ### 步骤 8：收尾——git 提交
 
-本站唯一的源码层产物是新 defconfig：
+本站唯一的源码层产物是新 defconfig，但仓库顶层还躺着一个**不该入库的文件**——步骤 5 拷进来的 TF-A 素材（二进制固件）。git 默认会做 CRLF→LF 换行规范化，对文本无妨、对二进制就是**悄悄改坏数据**，所以提交前先把它请出版本管理：
 
 ```bash
-git status --short      # 应只有 1 个新增文件：configs/stm32mp15_fsmp1a_trusted_defconfig
-git add -A
+git status --short      # 应见两个未跟踪文件：configs/stm32mp15_fsmp1a_trusted_defconfig、tf-a-...-trusted.stm32
+echo "tf-a-stm32mp157a-fsmp1a-trusted.stm32" >> .gitignore    # 二进制素材不入库
+git add -A              # .gitignore 已生效：进库的只有 defconfig 和 .gitignore
 git commit -m "trusted: 新增 FS-MP1A trusted 版 defconfig"
+git show --stat HEAD    # 复核：恰好 2 个文件——defconfig 与 .gitignore
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+实际执行时多了一个小插曲，恰好把本节开头的警告坐实：第一轮忘了先写 `.gitignore` 就 `git add -A`，TF-A 二进制被一起暂存——`add` 阶段弹出的 `warning: …中的 CRLF 将被 LF 替换` 就是"git 正在把这个'文本'做换行规范化"的现场信号。好在提交还没推送，就地修正：`git rm --cached` 把它请出暂存区（`--cached` 只动索引、磁盘文件原样保留），补写 `.gitignore`，再用 `git commit --amend --no-edit` 把上一个提交**原地改写**（`amend` 是"重做刚提交"的正规工具，改写会生成新哈希、旧的作废，且只对尚未推送的提交安全）。修正后的完整执行记录：
+
+```
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git rm --cached tf-a-stm32mp157a-fsmp1a-trusted.stm32
+rm 'tf-a-stm32mp157a-fsmp1a-trusted.stm32'
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ echo "tf-a-stm32mp157a-fsmp1a-trusted.stm32" >> .gitignore
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git add .gitignore
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git commit --amend --no-edit
+[WORKING e97b6818] trusted: 新增 FS-MP1A trusted 版 defconfig
+ Date: Sat Sep 19 15:19:37 2026 +0800
+ 2 files changed, 1617 insertions(+)
+ create mode 100644 configs/stm32mp15_fsmp1a_trusted_defconfig
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git show --stat HEAD
+commit e97b68186d58478b75a176a6d7eb786e874d0a1c (HEAD -> WORKING)
+Author: Gsheep0729 <2697438381@qq.com>
+Date:   Sat Sep 19 15:19:37 2026 +0800
+
+    trusted: 新增 FS-MP1A trusted 版 defconfig
+
+ .gitignore                                 |    1 +
+ configs/stm32mp15_fsmp1a_trusted_defconfig | 1616 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 1617 insertions(+)
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git status --short
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$
+```
+
+两条复核全部达标：`git show --stat HEAD` 恰 2 个文件——`configs/stm32mp15_fsmp1a_trusted_defconfig`（1616 行，`create mode` 里有且只有它）与 `.gitignore`（新增 1 行），合计 1617 insertions，TF-A 二进制不在其中；`git status --short` 无输出，工作区回干净。提交定档 **`e97b6818`**——WORKING 分支的新尖端，U-Boot 版本串接力再添一站：g3f0216e7 → g2224655f → g8de188df → g1ac3a506 → ec8c29dd → dd36022e → 88f08870 → e97b6818。`??` 清零之后，下次构建的版本串预计就是不带 `-dirty` 的 `ge97b6818`。
 
 ## 五、注意事项
 
@@ -267,10 +445,10 @@ grep "MAXIO\|STPMIC1\|_ADC" configs/stm32mp15_fsmp1a_trusted_defconfig   # 步�
 
 ## 七、实验完成标志
 
-- `configs/stm32mp15_fsmp1a_trusted_defconfig` 已建立，内含 F-1/F-3/F-5 的三处配置改动
-- 编译产出 `u-boot.stm32`，SD 卡已按新组合烧写（TF-A → sdb1/sdb2，`u-boot.stm32` → sdb3）
-- 串口依次出现：TF-A 引导日志 → U-Boot 横幅 → `Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)` → `MMC: STM32 SD/MMC: 0, STM32 SD/MMC: 1` → `Net: eth0` → `STM32MP>` 命令行
-- 已完成 git 提交（1 个文件）
+- `configs/stm32mp15_fsmp1a_trusted_defconfig` 已建立，内含 F-1/F-3/F-5 的三处配置改动（步骤 2~3 实测，三处自检全中）
+- 编译产出 `u-boot.stm32`（855605 字节），SD 卡已按新组合烧写：TF-A（241984 字节）→ sdb1/sdb2，`u-boot.stm32` → sdb3（步骤 4~6 实测）
+- 串口依次出现：TF-A 引导日志 → U-Boot 横幅 → `Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)` → `MMC: STM32 SD/MMC: 0, STM32 SD/MMC: 1` → `Net: eth0` → `STM32MP>` 命令行（步骤 7 实测，版本串 `g88f08870-dirty`，14:51:04 构建）
+- 已完成 git 提交 `e97b6818`：恰 2 个文件（trusted defconfig 1616 行 + `.gitignore` 1 行，合计 1617 insertions），TF-A 素材已 ignore、未入库，`git status --short` 无输出、工作区干净（步骤 8 实测，2026-09-19）
 
 ## 八、下一步：U-Boot 移植收官
 
