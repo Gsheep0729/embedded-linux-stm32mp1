@@ -205,7 +205,7 @@ Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)
 ![trusted 版串口日志](./12_实验十一_trusted版U-Boot移植.assets/02_trusted版串口日志.png)
 > 图：课件 Slide 86——trusted 版 U-Boot 的串口输出：`Board: stm32mp1 in trusted mode (st,stm32mp157a-dk1)`、`DRAM: 512 MiB`、`MMC: STM32 SD/MMC: 0, STM32 SD/MMC: 1`、`Loading Environment from MMC... OK`、`Net: eth0: ethernet@5800a000`、`Hit any key to stop autoboot: 0`，进入 `STM32MP>` 命令行。
 
-> 课件截图的版本串是 `2020.01-stm32mp-r1-gae7d1c12 (Jun 15 2023 ...)`——那是华清演示时的构建；我们编出来的版本串哈希与时间戳必然不同，正常。看准的是 `in trusted mode` 那一行，不是哈希。
+> 课件截图的版本串是 `2020.01-stm32mp-r1-gae7d1c12 (Jun 15 2023 ...)`——那是华清演示时的构建；我们编出来的版本串哈希与时间戳必然不同，正常。看准的是 `in trusted mode` 那一行，不是哈希。按版本串接力规律，本次构建应从 `g88f08870`（F-6 提交）起跳；且 trusted 流程的配置改动落在 `.config`（不入库）与**新增的** defconfig（提交前只是 untracked 文件）里，都不弄脏工作区——版本串预计**不带 `-dirty`**，与 basic 阶段 F 系列构建全带 `-dirty` 形成有趣对照。
 
 **实际执行结果**：待补充
 

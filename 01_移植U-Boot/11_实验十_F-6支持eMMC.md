@@ -80,7 +80,37 @@ grep -n -A 12 "sdmmc2_b4_pins_a: sdmmc2-b4-0" arch/arm/dts/stm32mp15-pinctrl.dts
 
 这一步**只看不改**：pinctrl 是芯片级公共文件，ST 早就写好了全部复用定义；设备树要做的只是"引用"它们——正是下一步的事。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ echo $CC
+arm-ostl-linux-gnueabi-gcc -mthumb -mfpu=neon-vfpv4 -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/sysroots/cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ grep -n "sdmmc2_b4_pins_a\|sdmmc2_b4_od_pins_a\|sdmmc2_b4_sleep_pins_a\|sdmmc2_d47_pins_a\|sdmmc2_d47_sleep_pins_a" arch/arm/dts/stm32mp15-pinctrl.dtsi
+908:	sdmmc2_b4_pins_a: sdmmc2-b4-0 {
+927:	sdmmc2_b4_od_pins_a: sdmmc2-b4-od-0 {
+951:	sdmmc2_b4_sleep_pins_a: sdmmc2-b4-sleep-0 {
+1005:	sdmmc2_d47_pins_a: sdmmc2-d47-0 {
+1017:	sdmmc2_d47_sleep_pins_a: sdmmc2-d47-sleep-0 {
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ grep -n -A 12 "sdmmc2_b4_pins_a: sdmmc2-b4-0" arch/arm/dts/stm32mp15-pinctrl.dtsi
+908:	sdmmc2_b4_pins_a: sdmmc2-b4-0 {
+909-		pins1 {
+910-			pinmux = <STM32_PINMUX('B', 14, AF9)>, /* SDMMC2_D0 */
+911-				 <STM32_PINMUX('B', 15, AF9)>, /* SDMMC2_D1 */
+912-				 <STM32_PINMUX('B', 3, AF9)>, /* SDMMC2_D2 */
+913-				 <STM32_PINMUX('B', 4, AF9)>, /* SDMMC2_D3 */
+914-				 <STM32_PINMUX('G', 6, AF10)>; /* SDMMC2_CMD */
+915-			slew-rate = <1>;
+916-			drive-push-pull;
+917-			bias-pull-up;
+918-		};
+919-		pins2 {
+920-			pinmux = <STM32_PINMUX('E', 3, AF9)>; /* SDMMC2_CK */
+```
+
+
+
+![工具链激活与 pinctrl 核对实测](./11_实验十_F-6支持eMMC.assets/03_工具链激活与pinctrl核对实测.png)
+> 图：终端实测——第一条 `echo $CC` 输出为空（新终端未激活工具链的铁证），激活后 `echo $CC` 回显完整交叉编译参数；两条 `grep` 核对 `stm32mp15-pinctrl.dtsi`：五个 sdmmc2 引脚组定义齐全（908 / 927 / 951 / 1005 / 1017 行），`sdmmc2_b4_pins_a` 的 pinmux 与课件引脚表一致（PB14/PB15/PB3/PB4 走 AF9、PG6 走 AF10、PE3 走 AF9）。
 
 ### 步骤 3：`fsmp1x.dtsi` 新增 `&sdmmc2` 节点（Slide 78）
 
@@ -120,8 +150,11 @@ nano arch/arm/dts/stm32mp15xx-fsmp1x.dtsi
 };
 ```
 
-![sdmmc2 节点新增](./11_实验十_F-6支持eMMC.assets/03_sdmmc2节点新增.png)
+![sdmmc2 节点新增](./11_实验十_F-6支持eMMC.assets/04_sdmmc2节点新增.png)
 > 图：课件 Slide 78——`stm32mp15xx-fsmp1x.dtsi` 中新增的 `&sdmmc2` 节点（第 442~457 行）：三组 pinctrl、`non-removable`、`no-sd`、`no-sdio`、`st,neg-edge`、`bus-width = <8>`、`vmmc-supply = <&v3v3>`、`vqmmc-supply = <&vdd>`、`mmc-ddr-3_3v`、`status = "okay"`。
+
+![sdmmc2 节点 nano 写入实测](./11_实验十_F-6支持eMMC.assets/05_sdmmc2节点nano写入实测.png)
+> 图：nano 实测——`&sdmmc2` 节点（绿框）已插在 `&sdmmc1` 节点之后；上方 `&sdmmc1` 里 F-2 改的 `cd-gpios = <&gpioh 3 …>` 原样未动，下方紧跟着文件原有的 `&sdmmc3` 节点（本板未用，不用管）。
 
 逐行看懂这段（几乎每行都能在前面的实验里找到对应物）：
 
@@ -137,13 +170,16 @@ nano arch/arm/dts/stm32mp15xx-fsmp1x.dtsi
 | `mmc-ddr-3_3v` | 支持 3.3V 供电下的双倍速率（DDR）模式 |
 | `status = "okay"` | 启用 |
 
-保存退出，自检：
+Ctrl+S 保存、Ctrl+X 退出，自检：
 
 ```bash
 grep -n -A 13 "sdmmc2 {" arch/arm/dts/stm32mp15xx-fsmp1x.dtsi    # 新节点应完整出现
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+![sdmmc2 节点自检实测](./11_实验十_F-6支持eMMC.assets/06_sdmmc2节点自检实测.png)
+> 图：自检实测——改前 `grep -n "sdmmc2"` 无输出（确认现状），`grep -n "^&sdmmc1"` 定位到 433 行；nano 保存后 `grep -n -A 13 "sdmmc2 {"` 完整回显新节点（446~459 行，绿框，属性与课件逐行一致）。
 
 ### 步骤 4：`-u-boot.dtsi` 加启动通道（Slide 79）
 
@@ -182,7 +218,13 @@ grep -n -A 5 "aliases {" arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi    # 应见
 grep -n -B 1 "u-boot,dm-spl" arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi    # 应见 &sdmmc1 与新增的 &sdmmc2 两段
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：两处改动先后保存（`grep` 自检的文本本站未单贴，两处改动在 nano 里直接可见）：
+
+![aliases 新增 mmc1 实测](./11_实验十_F-6支持eMMC.assets/09_aliases新增mmc1实测.png)
+> 图：nano 实测——aliases 里 `mmc1 = &sdmmc2;` 已插入（绿框，`i2c3` / `mmc0` / `usb0` 原样），底部"已写入 191 行"是保存回显。
+
+![sdmmc2 的 dm-spl 实测](./11_实验十_F-6支持eMMC.assets/10_sdmmc2的dm-spl实测.png)
+> 图：nano 实测——`&sdmmc1 { u-boot,dm-spl; };`（DK1 原有）下方新增 `&sdmmc2 { u-boot,dm-spl; };`（绿框）；右上角"已更改"是编辑中未保存的标记，Ctrl+S 后消失。
 
 ### 步骤 5：重新编译（沿用实验六流程）
 
@@ -192,7 +234,7 @@ make -j2 all DEVICE_TREE=stm32mp157a-fsmp1a
 
 只改了设备树，轻量重编，一两分钟，以 `MKIMAGE spl/u-boot-spl.stm32` 收尾。
 
-**实际执行结果**：待补充
+**实际执行结果**：编译顺利完成（本站未截编译收尾图，铁证在串口版本串里——SPL 与 U-Boot 本体均报 `(Sep 19 2026 - 13:58:34 +0800)`，即本次构建的新镜像）。哈希 `gdd36022e` = F-5 提交，接力预测兑现（g3f0216e7 → g2224655f → g8de188df → g1ac3a506 → ec8c29dd → dd36022e）；`-dirty` = F-6 改动已写入、尚未 git 提交，符合预期。
 
 ### 步骤 6：烧写 SD 卡（沿用实验六流程）
 
@@ -205,7 +247,7 @@ sudo dd if=u-boot.img     of=/dev/sdb3 conv=fdatasync
 
 设备树同时打进了 SPL 的 dtb 和 U-Boot 本体的 dtb，三条照旧全烧。
 
-**实际执行结果**：待补充
+**实际执行结果**：三条 dd 已照旧重烧 sdb1 / sdb2 / sdb3（本站未单独截图）。烧写成功的证据同样在串口里——板上跑起的正是 13:58:34 构建的那套镜像。
 
 ### 步骤 7：上电验证（Slide 80）
 
@@ -214,7 +256,7 @@ sudo dd if=u-boot.img     of=/dev/sdb3 conv=fdatasync
 **这一站的里程碑**：`MMC:` 一行从"只有 SD 卡"变成两个控制器——
 
 ```
-MMC:   STM32 SD/MMC: 0  STM32 SD/MMC: 1
+MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1
 ```
 
 `STM32 SD/MMC: 1` 的出现就是 Slide 80 说的"出现如图的 MMC1 即成功"。F 系列其余成果应全部保持：无电源报错、无 ADC 报错、`Err: serial` 直达 `Net:`、无 EQOS 报错，最终停在 `STM32MP>`。
@@ -229,9 +271,83 @@ mmc dev 1
 mmc info
 ```
 
-`mmc dev 1` 应回 `switch to partitions #0, OK` 与 `Current device is: 1`；`mmc info` 会列出设备与容量（板载 eMMC 的实际大小）。想切回 SD 卡，`mmc dev 0` 即可。
+`mmc dev 1` 应回 `switch to partitions #0, OK` 与 `mmc1(part 0) is current device`（eMMC 比 SD 卡多一层硬件分区概念，回显带 `(part 0)` 后缀）；`mmc info` 会列出设备与容量（板载 eMMC 的实际大小）。想切回 SD 卡，`mmc dev 0` 即可。
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+U-Boot SPL 2020.01-stm32mp-r1-gdd36022e-dirty (Sep 19 2026 - 13:58:34 +0800)
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+RAM: DDR3-DDR3L 16bits 533000Khz
+WDT:   Started with servicing (32s timeout)
+Trying to boot from MMC1
+
+
+U-Boot 2020.01-stm32mp-r1-gdd36022e-dirty (Sep 19 2026 - 13:58:34 +0800)
+
+CPU: STM32MP157AAA Rev.Z
+Model: STMicroelectronics STM32MP157A-DK1 Discovery Board
+Board: stm32mp1 in basic mode (st,stm32mp157a-dk1)
+DRAM:  512 MiB
+Clocks:
+- MPU : 650 MHz
+- MCU : 208.878 MHz
+- AXI : 266.500 MHz
+- PER : 24 MHz
+- DDR : 533 MHz
+WDT:   Started with servicing (32s timeout)
+NAND:  0 MiB
+MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1
+Loading Environment from MMC... OK
+In:    serial
+Out:   serial
+Err:   serial
+Net:   eth0: ethernet@5800a000
+Hit any key to stop autoboot:  0
+Boot over mmc0!
+switch to partitions #0, OK
+mmc0 is current device
+** Unrecognized filesystem type **
+STM32MP> mmc dev 1
+switch to partitions #0, OK
+mmc1(part 0) is current device
+STM32MP> mmc info
+Device: STM32 SD/MMC
+Manufacturer ID: 11
+OEM: 100
+Name: 004GA
+Bus Speed: 52000000
+Mode: MMC High Speed (52MHz)
+Rd Block Len: 512
+MMC version 5.0
+High Capacity: Yes
+Capacity: 3.7 GiB
+Bus Width: 8-bit
+Erase Group Size: 512 KiB
+HC WP Group Size: 4 MiB
+User Capacity: 3.7 GiB WRREL
+Boot Capacity: 2 MiB ENH
+RPMB Capacity: 512 KiB ENH
+STM32MP> mmc dev 0
+switch to partitions #0, OK
+mmc0 is current device
+STM32MP>
+```
+
+逐行看这份日志：
+
+- 版本串 `gdd36022e-dirty (Sep 19 2026 - 13:58:34 +0800)`——哈希 = F-5 提交、`-dirty` = F-6 未提交，与步骤 5 的预判一致；
+- `MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1`——**F-6 里程碑达成**。细节：两个控制器之间实际是"逗号 + 空格"，与课件截图（空格分隔）略有出入，以实机为准；
+- `Loading Environment from MMC... OK`——实验九保存的环境照常加载；
+- 倒计时归零 → `Boot over mmc0!` → `** Unrecognized filesystem type **` 落回 `STM32MP>`——实验九清环境后的默认行为照旧，bootcmd 只找 mmc0、不碰网卡；
+- `mmc dev 1` 选中 eMMC，`mmc info` 报出 Manufacturer ID 11、Name 004GA、MMC version 5.0、**Capacity: 3.7 GiB、Bus Width: 8-bit**——`bus-width = <8>` 与 F-1 固定的两路供电双双兑现，U-Boot 不只是"看见"了 eMMC，是真的能访问它；
+- `mmc dev 0` 切回 SD 卡，收工。
+
+![串口完整日志实测](./11_实验十_F-6支持eMMC.assets/12_串口完整日志实测.png)
+> 图：MobaXterm（COM11）实测完整日志——`MMC: STM32 SD/MMC: 0, STM32 SD/MMC: 1` 两个控制器到场；`mmc dev 1` / `mmc info` 摸底 eMMC（3.7 GiB、8-bit、MMC 5.0）后 `mmc dev 0` 切回 SD 卡，与上方文本日志同一次启动。
+
+![串口动图](./11_实验十_F-6支持eMMC.assets/13_串口动图.gif)
+> 图：上电到 `STM32MP>` 命令行的启动过程动图。
 
 ### 步骤 8：收尾——git 提交
 
@@ -243,7 +359,23 @@ git add -A
 git commit -m "F-6: 设备树支持 eMMC（新增 sdmmc2 节点与启动通道）"
 ```
 
-**实际执行结果**：待补充
+**实际执行结果**：
+
+```
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git status --short
+ M arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi
+ M arch/arm/dts/stm32mp15xx-fsmp1x.dtsi
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git add -A
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git commit -m "F-6: 设备树支持 eMMC（新增 sdmmc2 节点与启动通道）"
+[WORKING 88f08870] F-6: 设备树支持 eMMC（新增 sdmmc2 节点与启动通道）
+ 2 files changed, 21 insertions(+)
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$ git status --short
+cnu@cnu-virtual-machine:~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01$
+```
+
+`[WORKING 88f08870] 2 files changed, 21 insertions(+)`——**21 处新增、0 删除**，与本站"只加不改不删"的配方互证；随后 `git status --short` 无输出 = 工作区回到干净状态。版本串接力至此定档：g3f0216e7 → g2224655f → g8de188df → g1ac3a506 → ec8c29dd → dd36022e → **88f08870**，实验十一的构建将从 `g88f08870` 起跳。
+
+> 卡上现在的镜像仍是 `gdd36022e-dirty` 构建——它与提交后的代码内容一字不差（提交只是给改动"定了名分"），不必重烧；实验十一本来就要重新编译。
 
 ## 五、注意事项
 
@@ -274,7 +406,7 @@ grep -n -B 1 "u-boot,dm-spl" arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi   # sdm
 
 ### 第三层：上电实测
 
-`MMC:   STM32 SD/MMC: 0  STM32 SD/MMC: 1`——第二只控制器出现即达标；其余日志与实验九一致。
+`MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1`——第二只控制器出现即达标；其余日志与实验九一致。
 
 ### 第四层：命令行摸底（可选）
 
@@ -295,12 +427,12 @@ grep -n -B 1 "u-boot,dm-spl" arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi   # sdm
 
 ## 七、实验完成标志
 
-- `stm32mp15xx-fsmp1x.dtsi` 中已有完整的 `&sdmmc2` 节点（属性与课件 Slide 78 一致）
-- `stm32mp157a-fsmp1a-u-boot.dtsi` 中 aliases 已有 `mmc1 = &sdmmc2;`、已有 `&sdmmc2 { u-boot,dm-spl; };`
-- 重新编译成功，三个镜像已重新烧写到 sdb1 / sdb2 / sdb3
-- 串口 `MMC:` 行出现 `STM32 SD/MMC: 0  STM32 SD/MMC: 1`
-- （可选）`mmc dev 1` 选中 eMMC、`mmc info` 显示设备与容量
-- 已完成 git 提交（2 个文件）
+- `stm32mp15xx-fsmp1x.dtsi` 中已有完整的 `&sdmmc2` 节点，属性与课件 Slide 78 一致（步骤 3 实测，446~459 行）
+- `stm32mp157a-fsmp1a-u-boot.dtsi` 中 aliases 已加 `mmc1 = &sdmmc2;`、已新增 `&sdmmc2 { u-boot,dm-spl; };`（步骤 4 实测）
+- 重新编译成功、三个镜像已重新烧写到 sdb1 / sdb2 / sdb3（步骤 5~6 实测，串口版本串时间戳 `Sep 19 2026 - 13:58:34` 为证）
+- 串口 `MMC:` 行出现 `STM32 SD/MMC: 0, STM32 SD/MMC: 1`（步骤 7 实测）
+- `mmc dev 1` 选中 eMMC、`mmc info` 显示设备与容量：3.7 GiB、8-bit、MMC 5.0（步骤 7 实测）
+- 已完成 git 提交（2 个文件，21 insertions，`88f08870`）（步骤 8 实测）
 
 ## 八、下一步：basic 版收官
 
