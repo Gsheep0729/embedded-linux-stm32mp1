@@ -8,6 +8,7 @@
 |---|---|
 | `PPT/` | 10 章课件 PPT → Markdown 图文完整版（配图按章归档于 `PPT/images/chapNN/`） |
 | `01_移植U-Boot/` | 博客原稿：第 3 章「移植 U-Boot」实验系列（实验导论 + 各实验指导，指导与真实终端记录合二为一） |
+| `02_使用U-Boot/` | 博客原稿：第 4 章「使用 U-Boot」实验系列 |
 | `CLAUDE.md` | 仓库内部维护约定（AI 协作工作流说明），浏览内容可忽略 |
 
 > 原始 `.dps/.pptx` 课件与 SDK 安装包体积较大，未入库（见 `.gitignore`）。
@@ -29,6 +30,7 @@
 | 10 | [实验九：F-5 替换网卡驱动](01_移植U-Boot/10_实验九_F-5替换网卡驱动.md) | 拷入 MAE0621A 驱动三件套 + 三处配套修改，ping 通 PC |
 | 11 | [实验十：F-6 支持 eMMC](01_移植U-Boot/11_实验十_F-6支持eMMC.md) | 设备树新增 sdmmc2 节点与启动通道，串口出现 MMC1 |
 | 12 | [实验十一：trusted 版 U-Boot 移植](01_移植U-Boot/12_实验十一_trusted版U-Boot移植.md) | TF-A 接任 FSBL、配置重做三处，`in trusted mode` 收官 |
+| 13 | [实验十二：U-Boot 命令行与环境变量](02_使用U-Boot/13_实验十二_U-Boot命令行与环境变量操作.md) | 第 4 章开篇：进入命令行、查询三件套、setenv/saveenv 纪律 |
 
 ## 文档特点
 
@@ -48,7 +50,8 @@
 ## 路线图
 
 - [x] 第 3 章「移植 U-Boot」全系列（实验导论 + 实验一~十一：F-1~F-6 驱动修复、trusted 版收官）——见上方导读 01~12
-- [ ] 第 4~10 章实验：U-Boot 使用、Linux 内核移植、根文件系统（BusyBox/Buildroot）、字符设备驱动、GPIO、设备树、Qt GUI
+- [ ] 第 4 章「使用 U-Boot」系列（已开篇：实验十二 命令行与环境变量）——导读 13 起续更
+- [ ] 第 5~10 章实验：Linux 内核移植、根文件系统（BusyBox/Buildroot）、字符设备驱动、GPIO、设备树、Qt GUI
 
 ## 版权说明
 
