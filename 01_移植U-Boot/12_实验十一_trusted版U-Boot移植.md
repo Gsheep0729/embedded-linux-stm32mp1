@@ -33,7 +33,7 @@ U-Boot 本体则分 basic / trusted 两种工作模式（串口横幅里的 `Boa
 | 虚拟机 | 同实验一（VMware + Ubuntu 20.04，4GB 内存） |
 | 源码目录 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01` |
 | 分支 | WORKING |
-| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**，`echo $CC` 确认） |
+| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**：`source /stm32env`，`echo $CC` 确认） |
 | 新增材料 | 出厂 TF-A：`tf-a-stm32mp157a-fsmp1a-trusted.stm32`（Windows 资料包里有，烧写前经共享文件夹拷进虚拟机） |
 | 要新增的文件 | `configs/stm32mp15_fsmp1a_trusted_defconfig`（复制自 ST 原厂 trusted 配置） |
 | 串口 | MobaXterm Serial 会话（COM11），115200（同实验一） |
@@ -57,7 +57,8 @@ U-Boot 本体则分 basic / trusted 两种工作模式（串口横幅里的 `Boa
 ```bash
 cd ~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01
 
-. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+# /stm32env = 实验一步骤 6 建好的软链接，指向工具链的 environment-setup 脚本
+source /stm32env
 
 echo $CC    # 输出 arm-ostl-linux-gnueabi-gcc ... 才算激活成功
 ```

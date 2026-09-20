@@ -25,7 +25,7 @@
 | 虚拟机 | 同实验一（VMware + Ubuntu 20.04，4GB 内存） |
 | 源码目录 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01` |
 | 分支 | WORKING |
-| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**，`echo $CC` 确认） |
+| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**：`source /stm32env`，`echo $CC` 确认） |
 | 要修改的文件 | `arch/arm/dts/stm32mp15xx-fsmp1x.dtsi`（新增 `&sdmmc2` 节点）、`arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi`（aliases 加 `mmc1` + `&sdmmc2` 的 `dm-spl`） |
 | 串口 | MobaXterm Serial 会话（COM11），115200（同实验一） |
 | SD 卡 | `/dev/sdb`（实验四已分好区，本实验只需重烧三个镜像） |
@@ -49,7 +49,8 @@
 ```bash
 cd ~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01
 
-. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+# /stm32env = 实验一步骤 6 建好的软链接，指向工具链的 environment-setup 脚本
+source /stm32env
 
 echo $CC    # 输出 arm-ostl-linux-gnueabi-gcc ... 才算激活成功
 ```
@@ -193,7 +194,7 @@ nano arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi
 		mmc1 = &sdmmc2;
 ```
 
-![aliases 新增 mmc1](./11_实验十_F-6支持eMMC.assets/04_aliases新增mmc1.png)
+![aliases 新增 mmc1](./11_实验十_F-6支持eMMC.assets/07_aliases新增mmc1.png)
 > 图：课件 Slide 79——`stm32mp157a-fsmp1a-u-boot.dtsi` 中的 aliases 节点（红字为新增内容）：`aliases { i2c3 = &i2c4; mmc0 = &sdmmc1; mmc1 = &sdmmc2; usb0 = &usbotg_hs; };`，即增加启动通道 mmc1。
 
 > **顺带解答一个眼熟的疑问**：aliases 里那行 `i2c3 = &i2c4;`——F-1 不是把 `&i2c4` 删了吗，怎么它还在、还一直编得过？因为 F-1 删掉的是**板级扩展段**（PMIC、type-C 那些子节点所在的 `&i2c4 { ... }`），而控制器节点本体 `i2c4: i2c@5c002000` 定义在 SoC 级公共文件 `stm32mp151.dtsi` 里，一直都在（status 默认 disabled）。aliases 只是"编号 → 节点"的映射表，指向一个存在但禁用的节点完全合法。
@@ -206,7 +207,7 @@ nano arch/arm/dts/stm32mp157a-fsmp1a-u-boot.dtsi
 };
 ```
 
-![sdmmc2 的 dm-spl](./11_实验十_F-6支持eMMC.assets/05_sdmmc2的dm-spl.png)
+![sdmmc2 的 dm-spl](./11_实验十_F-6支持eMMC.assets/08_sdmmc2的dm-spl.png)
 > 图：课件 Slide 79——`stm32mp157a-fsmp1a-u-boot.dtsi` 中的另一处修改（红字为新增内容）：`&sdmmc1 { u-boot,dm-spl; };`、`&sdmmc2 { u-boot,dm-spl; };`，使 sdmmc2 也在 SPL 阶段可用。
 
 `u-boot,dm-spl` 是"SPL 阶段也要绑定这个设备"的标记：SPL 要读卡加载 U-Boot 本体，所以 sdmmc 控制器都得在 SPL 里可用（`&sdmmc1` 那段就是干这个的）。给 `&sdmmc2` 也带上，eMMC 在 SPL 阶段同样可访问——为后续"从 eMMC 引导"留好门。
@@ -261,7 +262,7 @@ MMC:   STM32 SD/MMC: 0, STM32 SD/MMC: 1
 
 `STM32 SD/MMC: 1` 的出现就是 Slide 80 说的"出现如图的 MMC1 即成功"。F 系列其余成果应全部保持：无电源报错、无 ADC 报错、`Err: serial` 直达 `Net:`、无 EQOS 报错，最终停在 `STM32MP>`。
 
-![串口出现 MMC1](./11_实验十_F-6支持eMMC.assets/06_串口出现MMC1.png)
+![串口出现 MMC1](./11_实验十_F-6支持eMMC.assets/11_串口出现MMC1.png)
 > 图：课件 Slide 80——重新编译烧写运行后的串口输出：`MMC: STM32 SD/MMC: 0  STM32 SD/MMC: 1`（红框，出现 MMC1 即 eMMC 支持成功）、`Loading Environment from MMC...`、`Net: eth0: ethernet@5800a000`、`Hit any key to stop autoboot: 0`、`STM32MP>`。（课件环境里环境变量是 bad CRC 警告——卡上没有遗留有效环境所致；我们的卡上有出厂遗留环境，显示 OK 同样正常。）
 
 **深入一步（可选）**：在 `STM32MP>` 下用命令真正摸一摸 eMMC：

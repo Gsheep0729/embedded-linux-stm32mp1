@@ -41,8 +41,8 @@ FS-MP1A 出厂跑的是 trusted，但教学上**先 basic 后 trusted**：basic 
 # 进入源码顶层目录
 cd ~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01
 
-# 激活工具链，直接 source 完整路径：
-. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+# 激活工具链（/stm32env 为实验一步骤 6 建好的软链接）：
+source /stm32env
 
 # 验证（课件 Slide 36 的要求：执行 make xxx_defconfig 前必须确认）
 echo $CC
@@ -55,7 +55,7 @@ echo $CC
 **实际执行结果**：
 
 ![激活工具链并验证](./04_实验三_basic版U-Boot配置与首次编译.assets/01_激活工具链.png)
-> 图：激活工具链并验证——执行 environment-setup 脚本后，`echo $CC` 输出 `arm-ostl-linux-gnueabi-gcc -mthumb -mfpu=neon-vfpv4 … --sysroot=/opt/st/…`：`$CC` 已指向交叉编译器，`--sysroot` 指向 SDK 内的目标系统库。
+> 图：激活工具链并验证——`source /stm32env` 激活后，`echo $CC` 输出 `arm-ostl-linux-gnueabi-gcc -mthumb -mfpu=neon-vfpv4 … --sysroot=/opt/st/…`：`$CC` 已指向交叉编译器，`--sysroot` 指向 SDK 内的目标系统库。
 
 ### 步骤 2：创建并加载 FS-MP1A 的 defconfig（Slide 36）
 
@@ -212,7 +212,7 @@ ls -la u-boot-spl.stm32 u-boot.img
 
 ## 四、注意事项
 
-1. **新终端必须重新 `source /stm32env`**（或完整路径）——工具链激活只对当前窗口有效。特征：报错 `bad value ('generic-armv7-a') for '-mtune='` 且错误信息里出现一排 Intel/AMD CPU，就是忘了激活。
+1. **新终端必须重新 `source /stm32env`**——工具链激活只对当前窗口有效。特征：报错 `bad value ('generic-armv7-a') for '-mtune='` 且错误信息里出现一排 Intel/AMD CPU，就是忘了激活。
 2. **`make ..._defconfig` 之前先 `echo $CC` 确认工具链**（课件 Slide 36 明确要求）。
 3. **共享文件夹编译隐患**（实验一/二经验）：解压和 git 没问题，但编译阶段若在共享文件夹里报符号链接/权限类错误，把源码目录移到本地磁盘再编。
 4. **虚拟机内存 4GB**：`-j2` 是安全上限，别开太高，否则可能被 OOM 杀掉编译进程。

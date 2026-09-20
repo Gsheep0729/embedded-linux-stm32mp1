@@ -27,7 +27,7 @@
 | 虚拟机 | 同实验一（VMware + Ubuntu 20.04，4GB 内存） |
 | 源码目录 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01` |
 | 分支 | WORKING |
-| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**，`echo $CC` 确认） |
+| 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24`（**每个新终端都要重新激活**：`source /stm32env`，`echo $CC` 确认） |
 | 要修改的文件 | `arch/arm/dts/stm32mp15xx-fsmp1x.dtsi`（只改 `&ltdc` 的 `status` 一行） |
 | 串口 | MobaXterm Serial 会话（COM11），115200（同实验一） |
 | SD 卡 | `/dev/sdb`（实验四已分好区，本实验只需重烧三个镜像） |
@@ -46,7 +46,8 @@
 ```bash
 cd ~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01
 
-. /opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24/environment-setup-cortexa7t2hf-neon-vfpv4-ostl-linux-gnueabi
+# /stm32env = 实验一步骤 6 建好的软链接，指向工具链的 environment-setup 脚本
+source /stm32env
 
 echo $CC    # 输出 arm-ostl-linux-gnueabi-gcc ... 才算激活成功
 ```
