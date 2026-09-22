@@ -30,9 +30,11 @@ PC 侧两个 IP 是既有事实（实验九配好，不用再动）：
 |---|---|
 | 板子状态 | trusted 版 U-Boot，上电倒计时 5 秒（实验十二成果），`STM32MP>` 可达 |
 | 串口 | MobaXterm Serial 会话（COM11），115200 |
-| 环境变量基线 | `ethaddr` / `ipaddr 192.168.0.8` / `netmask 255.255.255.0` 已设并 saveenv（实验九）；`serverip` **未设**——本篇补上 |
+| 环境变量基线 | `ethaddr` / `ipaddr 192.168.0.8` / `netmask 255.255.255.0` 已设并 saveenv（实验九设定、换板后按附录重设，实验十二步骤 7 复核仍在）；`serverip` **出厂默认带着 `192.168.1.1`**（实验十二实测，不是空值）——本篇要把它改成 PC 的 `192.168.0.100` |
 | PC 侧网络 | USB 网卡"以太网 7" = `192.168.0.100/24`（实验九配好） |
 | 本篇新增材料 | `D:\桌面文件\资料\嵌入式linux\官方系统内核和设备树.zip`（内含 `uImage`，7,546,640 字节）；Windows 侧 TFTP 服务器软件 tftpd64 |
+
+> **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每一步拦停才来得及按 Enter。
 
 ## 三、课件 ↔ 步骤对应表
 
@@ -52,6 +54,8 @@ PC 侧两个 IP 是既有事实（实验九配好，不用再动）：
 ### 步骤 1：ping 复核链路（Slide 18）
 
 上电，倒计时 5 秒内按 Enter 拦停，进 `STM32MP>`：
+
+> 倒计时还是眨眼就没（`Hit any key to stop autoboot:  0` 显示 0）说明 `bootdelay` 没落成 5——先补一句再往下做：`setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法），`reset` 后窗口就有 5 秒。换过板子或换过卡之后尤其容易回到 0，见第 3 章末《附录 换电脑 / 换板子后，快速恢复到实验十一结束状态》。
 
 ```
 STM32MP> ping 192.168.0.100
@@ -208,12 +212,12 @@ STM32MP> nfs 0xc2000000 192.168.1.249:/home/zuozhongkai/linux/nfs/uImage
 
 ## 七、实验完成标志
 
-- [ ] `ping 192.168.0.100` 通（步骤 1）
-- [ ] `serverip` 已设并 saveenv，`print serverip` 复验在（步骤 2）
-- [ ] PC 侧 tftpd64 运行中，`D:\tftpboot` 根下有 `uImage`（步骤 3）
-- [ ] `tftp c2000000 uImage` 下载成功，`Bytes transferred = 7546640`（步骤 4）
-- [ ] `dhcp` 直连拓扑下广播超时——现象亲测、原因说得清（步骤 5）
-- [ ] nfs 与 tftp 的差异、"Permission denied" 的排查思路说得出（步骤 4~6）
+- `ping 192.168.0.100` 通（步骤 1，待实测）
+- `serverip` 已设并 saveenv，`print serverip` 复验在（步骤 2，待实测）——注意板子上 `serverip` 出厂自带 `192.168.1.1`，是"改"不是"补"，见实验十二步骤 7 实测
+- PC 侧 tftpd64 运行中，`D:\tftpboot` 根下有 `uImage`（步骤 3，待实测）
+- `tftp c2000000 uImage` 下载成功，`Bytes transferred = 7546640`（步骤 4，待实测）
+- `dhcp` 直连拓扑下广播超时——现象亲测、原因说得清（步骤 5，待实测）
+- nfs 与 tftp 的差异、"Permission denied" 的排查思路说得出（步骤 4~6，待实测）
 
 ## 八、下一步：eMMC 和 SD 卡操作命令
 

@@ -27,6 +27,8 @@ SD 卡和 eMMC 用的同一类控制器，U-Boot 统一编为 mmc 设备：**0 �
 | eMMC（mmc 1） | 3.7 GiB（004GA，MMC 5.0，8-bit 总线，实验十 `mmc info` 验证）；分区内容本篇探明 |
 | 环境变量基线 | 实验九网络三件套 + 实验十三的 `serverip`；`bootdelay 5` |
 
+> **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每次拦停都来得及按 Enter。做法见《实验十二》步骤 1 与步骤 4。
+
 ## 三、课件 ↔ 步骤对应表
 
 | 课件 Slide | 内容 | 对应步骤 |
@@ -207,12 +209,12 @@ mmc erase blk# cnt          ; 擦除当前设备的数据
 
 ## 七、实验完成标志
 
-- [ ] `? mmc` 总览实测，说得出本篇动手五条与不碰四条（步骤 1、7）
-- [ ] `mmc info` / `mmc list` 实测——0 = SD、1 = eMMC，默认当前设备与启动设备一致（步骤 2）
-- [ ] `mmc dev 0` 切换 + SD 卡 `mmc info`（4-bit、容量与实验四的卡对得上）（步骤 3）
-- [ ] **eMMC 分区表 `mmc part` 实测存档**（步骤 4，后续两篇的地图）
-- [ ] `mmc dev 1 <分区号>` 指定分区切换实测，`(part N)` 回显认得（步骤 5）
-- [ ] `mmc read` 实测 `16 blocks read: OK`，十进制回显换算说得出（步骤 6）
+- `? mmc` 总览实测，说得出本篇动手五条与不碰四条（步骤 1、7，待实测）
+- `mmc info` / `mmc list` 实测——0 = SD、1 = eMMC，默认当前设备与启动设备一致（步骤 2，待实测）
+- `mmc dev 0` 切换 + SD 卡 `mmc info`（4-bit、容量与实验四的卡对得上）（步骤 3，待实测）
+- **eMMC 分区表 `mmc part` 实测存档**（步骤 4，后续两篇的地图；换过板子后这一条必须重做）
+- `mmc dev 1 <分区号>` 指定分区切换实测，`(part N)` 回显认得（步骤 5，待实测）
+- `mmc read` 实测 `16 blocks read: OK`，十进制回显换算说得出（步骤 6，待实测）
 
 ## 八、下一步：ext4 文件系统操作命令
 

@@ -23,6 +23,8 @@ uImage 是"U-Boot 格式"的内核镜像（带头部信息），zImage 是裸压
 | 网络 | tftpd64 运行中；`D:\tftpboot` 里需有 `uImage`（7,546,640 字节，实验十三已在）+ `stm32mp157a-fsmp1a-mipi050.dtb`（71,805 字节，从 `官方系统内核和设备树.zip` 解压目录拷入——zip 里仅此一对文件，配套出厂品，无变体纠结） |
 | 环境变量基线 | 实验九网络三件套 + `serverip 192.168.0.100` + `bootdelay 5`；`bootcmd` 仍为 ST 默认（autoboot 扫 mmc 落空那条路） |
 
+> **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每次拦停都来得及按 Enter。做法见《实验十二》步骤 1 与步骤 4。
+
 ## 三、课件 ↔ 步骤对应表
 
 | 课件 Slide | 内容 | 对应步骤 |
@@ -148,11 +150,11 @@ STM32MP> run bootcmd
 
 ## 七、实验完成标志
 
-- [ ] `tftp` 两条（内核 `c2000000` + 设备树 `c4000000`）字节数对账通过（步骤 2）
-- [ ] `bootm c2000000 - c4000000` 点火成功——`Starting kernel ...` 后滚出 Linux 日志（步骤 2）
-- [ ] 内核日志停止位置有记录（第 5 章起跑线）（步骤 2）
-- [ ] `bootcmd` 三连已 saveenv，`run bootcmd` 复现启动（步骤 3）
-- [ ] `boot`/`bootd` 与 `run bootcmd` 的等效关系验证过（步骤 3）
+- `tftp` 两条（内核 `c2000000` + 设备树 `c4000000`）字节数对账通过（步骤 2，待实测）
+- `bootm c2000000 - c4000000` 点火成功——`Starting kernel ...` 后滚出 Linux 日志（步骤 2，待实测）
+- 内核日志停止位置有记录（第 5 章起跑线）（步骤 2，待实测）
+- `bootcmd` 三连已 saveenv，`run bootcmd` 复现启动（步骤 3，待实测）
+- `boot`/`bootd` 与 `run bootcmd` 的等效关系验证过（步骤 3，待实测）
 
 ## 八、下一步：其他命令与自定义启动变量
 

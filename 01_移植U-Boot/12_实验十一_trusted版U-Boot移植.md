@@ -358,6 +358,15 @@ STM32MP>
 ![串口动图](./12_实验十一_trusted版U-Boot移植.assets/08_串口动图.gif)
 > 图：上电到 `STM32MP>` 命令行的启动过程动图——TF-A 引导日志先行，U-Boot 横幅接力登场。
 
+> **收官前顺手把拦停窗口调宽**：串口的 `Hit any key to stop autoboot:  0` 里那个 0 就是环境变量 `bootdelay`，拦停全靠"看清提示的一瞬间按键"。第 4 章整章都要在命令行里操作，建议现在就把它改成 5 秒：
+>
+> ```
+> setenv bootdelay 5
+> saveenv
+> ```
+>
+> 两种写法等价：`env set bootdelay 5` + `env save` 与课件的 `setenv` + `saveenv` 是同一段代码的两个门牌——实测 `help` 列表里 `setenv`、`printenv`、`saveenv`、`env` 四条全在，环境变量这一族命令 trusted 版一条不缺。所以万一敲 `setenv` 报了 `Unknown command 'setenv'`，那是**粘进串口的字节不干净**，不是命令缺席：终端粘贴用右键、别从 PDF 或网页直接拷（零宽字符、全角空格终端不回显，U-Boot 却把它们算进命令名），手敲一遍即见分晓。设完 `reset` 复验一次，倒计时应从 5 数起。
+
 ### 步骤 8：收尾——git 提交
 
 本站唯一的源码层产物是新 defconfig，但仓库顶层还躺着一个**不该入库的文件**——步骤 5 拷进来的 TF-A 素材（二进制固件）。git 默认会做 CRLF→LF 换行规范化，对文本无妨、对二进制就是**悄悄改坏数据**，所以提交前先把它请出版本管理：
