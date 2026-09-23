@@ -44,7 +44,7 @@
 | 环境变量基线 | `ethaddr` / `ipaddr 192.168.0.8` / `netmask 255.255.255.0` 已设并 saveenv（实验九设定、换板后按附录重设，实验十二步骤 7 复核仍在）；`serverip` **出厂默认带着 `192.168.1.1`**（实验十二实测，不是空值）——本篇把它改成服务器的 `192.168.0.100` |
 | 服务器（本篇新搭） | Ubuntu 20.04 虚拟机里的 **tftpd-hpa**；根目录 `/home/cnu/tftpboot`。这台按《开发环境搭建》配的虚拟机原有两块网卡（网卡 1 = 仅主机 VMnet1，Ubuntu 侧 `192.168.56.101`；网卡 2 = NAT 上外网），**两块都到不了板子**；本篇**新增第三块网卡**做桥接（VMnet0 → 那块 ASIX USB 网卡），静态 `192.168.0.100/24`、网关 DNS 留空 |
 | Windows 宿主 | 那块 ASIX USB 网卡"以太网 7"从 `192.168.0.100` **改成 `192.168.0.99/24`**（给服务器让位，避免抢地址）；VMnet1 那块（`192.168.56.10`）不动 |
-| 本篇新增材料 | 测试文件 `uImage`（7,546,640 字节，来自 `D:\桌面文件\资料\嵌入式linux\官方系统内核和设备树.zip`；我已在 Windows 侧备了一份在 `D:\tftpboot\uImage`，经共享文件夹拷进虚拟机即可）。**不需要再装任何第三方软件**——`tftpd-hpa` 走 apt，且这一步顺手把第 5 章 5.5 节要用的服务器一起搭好了 |
+| 本篇新增材料 | 测试文件 `uImage`（7,546,640 字节，来自 `D:\桌面文件\资料\嵌入式linux\官方系统内核和设备树.zip`；zip 里只有 `uImage` 与 `stm32mp157a-fsmp1a-mipi050.dtb` 两个文件。传递路径见步骤 3 ⑥：解压 → 放进虚拟机共享目录 → `cp` 到 `/home/cnu/tftpboot/` → `ls -l` 看权限）。**不需要再装任何第三方软件**——`tftpd-hpa` 走 apt，且这一步顺手把第 5 章 5.5 节要用的服务器一起搭好了 |
 | 装包与共享 | 加第三块网卡**不需要断网、也不需要来回改**：apt 照旧走网卡 2（NAT）；`\\192.168.56.101` 映射出来的网络硬盘（Z: 盘）照旧走网卡 1（仅主机）——**所以网卡 1 千万别动**，动了 Z: 盘就掉 |
 
 > **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每一步拦停才来得及按 Enter。
@@ -647,25 +647,29 @@ Using ethernet@5800a000 device
 File transfer via NFS from server 192.168.0.100; our IP address is 192.168.0.8
 Filename '/home/cnu/nfsboot/uImage'.
 Load address: 0xc2000000
-Loading: T T T T T T
+Loading: T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
+Retry count exceeded; starting again
+STM32MP>
 ```
 
-![nfs同网段超时重试实测](./14_实验十三_网络操作命令与TFTP服务器搭建.assets/21_nfs同网段超时重试.png)
-> 图：实测串口——同一个 `nfs` 命令，服务器地址换成 `192.168.0.100` 后，`File transfer via NFS from server 192.168.0.100; our IP address is 192.168.0.8` 之后**四行网关警告全部消失**，`Loading:` 后面是一个接一个的 `T`（截图停在第六个 `T`，此时仍在重试，等它放弃或按 Ctrl+C 中止都行）。
+![nfs同网段一路重试到超时](./14_实验十三_网络操作命令与TFTP服务器搭建.assets/21_nfs同网段超时重试.png)
+
+> 图：实测串口——同一个 `nfs` 命令，服务器地址换成 `192.168.0.100` 后，`File transfer via NFS from server 192.168.0.100; our IP address is 192.168.0.8` 之后**四行网关警告全部消失**，`Loading:` 后面一路打了 30 个 `T`，最后收在 `Retry count exceeded; starting again` 并落回 `STM32MP>` 提示符。
 
 这发日志要读出三层信息：
 
 - **前四行与第一发一字不差**，只有服务器地址从 `192.168.1.249` 换成 `192.168.0.100`——`nfs` 的地址确实只认命令里给的那个，`serverip` 一点作用都没有（与 `tftp` 相反，这就是"两点差别"里的第一点）。
 - **`gatewayip` 警告消失**：`.100` 与板子 `.8/24` 同网段，不需要下一跳，U-Boot 直接在本链路广播 ARP 问 `.100` 的 MAC。
-- **`Loading: T T T T T T` 而不是 `ARP Retry count exceeded`**：这是本次实测最有价值的一处对照——ARP 已经问到了对方 MAC、包也发出去了（否则又会像第一发那样卡在 ARP），只是**对面没有任何程序应答 NFS 的请求**，每 `T` 是一次重试超时。换句话说：网络这一段全绿，缺的只剩"服务器上那个服务"。
+- **`Loading: T T T…` 一路打下去，而不是 `ARP Retry count exceeded`**：这是本次实测最有价值的一处对照——ARP 已经问到了对方 MAC、包也发出去了（否则又会像第一发那样卡在 ARP），只是**对面没有任何程序应答 NFS 的请求**，每 `T` 是一次重试超时。换句话说：网络这一段全绿，缺的只剩"服务器上那个服务"。
+- **收尾那行是 `Retry count exceeded; starting again`，注意它前面没有 `ARP` 三个字**：第一发是 `ARP Retry count exceeded`（找 MAC 就没找到），第二发打了 30 个 `T` 之后才是 `Retry count exceeded`（MAC 找到了、请求发出去了、等不到应答）。**两行的差别本身就是诊断信息**：有没有 `ARP` 前缀 = 断在链路层还是断在应用层。
 
 | 敲的是哪一发 | 报什么 | 说明什么 |
 |---|---|---|
 | 课件原样（`192.168.1.249`，跨网段） | `## Warning: gatewayip needed but not set` ×4 → `ARP Retry count exceeded` | 卡在**路由**：找不到下一跳，连 ARP 都没处问 |
-| 换成同网段（`192.168.0.100`，实测） | 无网关警告，`Loading: T T T T T T` 一路重试 | 卡在**服务**：链路、IP、ARP 全通，服务器上根本没有 NFS 可导 |
+| 换成同网段（`192.168.0.100`，实测） | 无网关警告，`Loading:` 后 30 个 `T` → `Retry count exceeded; starting again` | 卡在**服务**：链路、IP、ARP 全通，服务器上根本没有 NFS 可导 |
 | 对照：`tftp c2000000 uImage` | 一次成功，`Bytes transferred = 7546640` | tftp 只要一个 `tftpd-hpa` 就够，前置最轻 |
 
-顺带一句：第二发的失败方式（一路 `T`）与步骤 4 之前那次"服务器还没配好"的干等超时是同一个形状。**看到 `T` 就该往服务器侧查（服务在不在跑、端口对不对、目录导出没有），看到 `ARP Retry count exceeded` 才往链路/网段查**——这条分界以后排障会反复用到。
+顺带一句：第二发的失败方式（一路 `T` 到超时）与步骤 3 那次"文件权限还没修好"的干等超时是同一个形状。**看到 `T` 就该往服务器侧查（服务在不在跑、端口对不对、权限与目录导出没有），看到带 `ARP` 的超时才往链路/网段查**——这条分界以后排障会反复用到。
 
 **关联后续实验（第 6 章就靠这两发垫底）**：第 6 章 6.1 节（课件 Slide 49-51）要在这台 Ubuntu 上装 `nfs-kernel-server` + `nfs-common`、建 `/home/cnu/nfsboot`、在 `/etc/exports` 里加一行 `/home/cnu/nfsboot *(rw,sync,no_root_squash,no_subtree_check)`，课件还特别注明要**使能 NFS v2**（"开发板上的 nfs 客户端是 V2 版本"）。届时第二发就会通。另外提前记一笔：课件 6 章那串 bootargs 里板子 IP 写的是 `ip=192.168.0.2`，而我们全系列用的是 `ipaddr 192.168.0.8`——**到第 6 章要二选一对齐**（改 bootargs 里的 `ip=` 成 `.8`，或把 `ipaddr` 改成 `.2`），别两边各说各话。
 
@@ -838,7 +842,7 @@ c2000000: unknown host
 - `/home/cnu/tftpboot/uImage` 已就位（7,546,640 字节；传递路径 zip → 共享目录 → `cp` 进根目录）；本机 `tftp 127.0.0.1` 首测被**文件权限**挡住（坑 7），`chmod 644` 后**复测通过**——`/tmp/uImage` = 7,546,640 字节（步骤 3 ⑥ 实测）
 - `tftp c2000000 uImage` 下载成功，`Bytes transferred = 7546640 (732710 hex)`、`1.7 MiB/s`（步骤 4 实测达标；这条要在**板子上**敲，在 Ubuntu 里敲会报 `unknown host`，见坑 9）
 - `dhcp` 在这根网线上 `BOOTP broadcast 1…17` → `Retry time exceeded; starting again`——现象亲测、原因说得清（步骤 5 实测达标）
-- nfs 与 tftp 的两点差别实测到位：地址来自命令本身、跨网段必须有网关——第一发 `nfs 0xc2000000 192.168.1.249:...` 实测回四行 `## Warning: gatewayip needed but not set` + `ARP Retry count exceeded`；第二发换成同网段的 `192.168.0.100`，实测**网关警告全消**、只剩 `Loading: T T T T T T` 一路重试，失败点从"路由"挪到"服务器上没这个服务"，成因与三条出路见步骤 6（步骤 6 两发均实测达标）
+- nfs 与 tftp 的两点差别实测到位：地址来自命令本身、跨网段必须有网关——第一发 `nfs 0xc2000000 192.168.1.249:...` 实测回四行 `## Warning: gatewayip needed but not set` + `ARP Retry count exceeded`；第二发换成同网段的 `192.168.0.100`，实测**网关警告全消**、`Loading:` 后一路打了 30 个 `T` 才收在 `Retry count exceeded; starting again`（**注意没有 `ARP` 前缀**——链路层已经通了），失败点从"路由"挪到"服务器上没这个服务"，成因与三条出路见步骤 6（步骤 6 两发均实测达标）
 - 九个坑的成因与定位手段能复述，尤其是"改错对象""没确认落盘""权限与链路这类看不见的东西""同名命令两侧不同义"这四类（第六节踩坑实录）
 
 ## 九、下一步：eMMC 和 SD 卡操作命令

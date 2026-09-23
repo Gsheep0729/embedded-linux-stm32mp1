@@ -19,8 +19,8 @@ uImage 是"U-Boot 格式"的内核镜像（带头部信息），zImage 是裸压
 | 项目 | 实际值 |
 |---|---|
 | 板子状态 | trusted 版 U-Boot，倒计时 5 秒，`STM32MP>` 可达 |
-| 串口 | MobaXterm Serial 会话（COM11），115200 |
-| 网络 | tftpd64 运行中；`D:\tftpboot` 里需有 `uImage`（7,546,640 字节，实验十三已在）+ `stm32mp157a-fsmp1a-mipi050.dtb`（71,805 字节，从 `官方系统内核和设备树.zip` 解压目录拷入——zip 里仅此一对文件，配套出厂品，无变体纠结） |
+| 串口 | MobaXterm Serial 会话，115200（`COM11` 是旧电脑的值，新机上以 Windows 设备管理器里的 ST-Link 串口号为准） |
+| 网络 | Ubuntu 侧 `tftpd-hpa` 运行中（实验十三那台，`serverip 192.168.0.100`）；`/home/cnu/tftpboot` 里需有 `uImage`（7,546,640 字节，实验十三已在）+ `stm32mp157a-fsmp1a-mipi050.dtb`（71,805 字节，从 `官方系统内核和设备树.zip` 取，`cp` 进去后要 `chmod 644`——zip 里仅此一对文件，配套出厂品，无变体纠结） |
 | 环境变量基线 | 实验九网络三件套 + `serverip 192.168.0.100` + `bootdelay 5`；`bootcmd` 仍为 ST 默认（autoboot 扫 mmc 落空那条路） |
 
 > **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每次拦停都来得及按 Enter。做法见《实验十二》步骤 1 与步骤 4。
@@ -118,7 +118,7 @@ STM32MP> run bootcmd
 
 - **三条命令打包在一个引号里**，用分号串联——整个字符串是一个环境变量的值（实验十二练过的语法：值含空格必须加引号）；
 - `run bootcmd` 手动执行它；`boot` 命令与之等效——若报 `Unknown command`，就是课件 Slide 48 说的"ST 未使能 boot 命令"，`run bootcmd` 即可，两者一回事；
-- **saveenv 之后行为变化**：此后每次上电，倒计时归零 = 自动走网络启动。**PC 与 tftpd64 必须在线**，否则 bootcmd 里的 tftp 重试几轮后 Abort 落回命令行（无害，就是慢）。倒计时 5 秒内按 Enter 照旧可以拦停；
+- **saveenv 之后行为变化**：此后每次上电，倒计时归零 = 自动走网络启动。**Ubuntu 与它的 `tftpd-hpa` 必须在线**，否则 bootcmd 里的 tftp 重试几轮后 Abort 落回命令行（无害，就是慢）。倒计时 5 秒内按 Enter 照旧可以拦停；
 - 想还原"归零后安静落提示符"：`setenv bootcmd`（赋空值）+ `saveenv`——第 5 章会更 handy 地管理它，届时再说。
 
 **实际执行结果**：待补充
@@ -129,7 +129,7 @@ STM32MP> run bootcmd
 2. **地址约定全系列统一**：内核 `c2000000`、设备树 `c4000000`（实验十三起的约定，课件同款）。bootm 的三个地址要与 tftp 下载地址一字不差。
 3. **`-` 占位不能丢**：`bootm c2000000 - c4000000` 中间的减号两侧空格都在——写成 `bootm c2000000 c4000000` 会把设备树当地址用，启动失败。
 4. **`Starting kernel ...` 之后无输出**：先等 10 秒（内核解压/早期初始化要时间），再确认 dtb 是不是 fsmp1a 那份（控制台配置不对会"哑火"）；再不行回查 tftp 的 Bytes transferred。
-5. **固化 bootcmd 后 PC 要常在线**：tftpd64 没开时上电会多等几轮 tftp 超时才落回命令行——不是死机。
+5. **固化 bootcmd 后服务器要常在线**：`tftpd-hpa` 没开（或虚拟机没启动）时，上电会多等几轮 tftp 超时才落回命令行——不是死机。
 6. **终端粘贴用右键**；bootcmd 那条长命令务必整体复制粘贴，手打容易丢分号。
 
 ## 六、怎么验证
