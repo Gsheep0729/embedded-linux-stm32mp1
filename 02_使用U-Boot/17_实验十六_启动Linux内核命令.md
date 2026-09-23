@@ -20,7 +20,7 @@ uImage 是"U-Boot 格式"的内核镜像（带头部信息），zImage 是裸压
 |---|---|
 | 板子状态 | trusted 版 U-Boot，倒计时 5 秒，`STM32MP>` 可达 |
 | 串口 | MobaXterm Serial 会话，115200（`COM11` 是旧电脑的值，新机上以 Windows 设备管理器里的 ST-Link 串口号为准） |
-| 网络 | Ubuntu 侧 `tftpd-hpa` 运行中（实验十三那台，`serverip 192.168.0.100`）；`/home/cnu/tftpboot` 里需有 `uImage`（7,546,640 字节，实验十三已在）+ `stm32mp157a-fsmp1a-mipi050.dtb`（71,805 字节，从 `官方系统内核和设备树.zip` 取，`cp` 进去后要 `chmod 644`——zip 里仅此一对文件，配套出厂品，无变体纠结） |
+| 网络 | Ubuntu 侧 `tftpd-hpa` 运行中（实验十三那台，`serverip 192.168.0.100`）；`/home/cnu/tftpboot` 里两个文件**都已在位**：`uImage`（7,546,640 字节，实验十三放入）+ `stm32mp157a-fsmp1a-mipi050.dtb`（71,805 字节，实验十五步骤 6 补入并实测 `Bytes transferred = 71805 (1187d hex)`，权限 644）——zip 里仅此一对文件，配套出厂品，无变体纠结 |
 | 环境变量基线 | 实验九网络三件套 + `serverip 192.168.0.100` + `bootdelay 5`；`bootcmd` 仍为 ST 默认（autoboot 扫 mmc 落空那条路） |
 
 > **开工自检（10 秒）**：上电先看 `Hit any key to stop autoboot:` 后面那个数字——若是 **0**（换过板子、重新分区烧写后最容易回到 0），先补一句 `setenv bootdelay 5` + `saveenv`（`env set` / `env save` 等价写法）再 `reset`，往后每次拦停都来得及按 Enter。做法见《实验十二》步骤 1 与步骤 4。
@@ -145,7 +145,7 @@ STM32MP> run bootcmd
 |---|---|
 | `bootm` 报 `Wrong Image Format for bootm command` | `c2000000` 处不是 uImage——tftp 那步成功了吗（Bytes transferred）；地址有没有打错 |
 | `## Flattened Device Tree blob` 后卡住 | dtb 地址对不对（`c4000000`）、dtb 是不是 fsmp1a 那份 |
-| `Starting kernel ...` 后永久无输出 | 多等 10 秒；换 PC 侧确认 tftp 下载的 dtb 字节数 = 71,805；仍无输出则记录现象，第 5 章编自己的内核时自然解决 |
+| `Starting kernel ...` 后永久无输出 | 多等 10 秒；再确认 tftp 下载的 dtb 字节数 = 71,805（服务器侧 `ls -l /home/cnu/tftpboot` 也对一次）；仍无输出则记录现象，第 5 章编自己的内核时自然解决 |
 | 内核日志滚出后 panic | **预期结局**——记录停在哪一行，这正是第 5 章要解决的问题 |
 
 ## 七、实验完成标志
