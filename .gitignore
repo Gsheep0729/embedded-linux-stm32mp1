@@ -2,6 +2,9 @@
 *.dps
 *.pptx
 
+# 课程配套的原始 word 资料（内容已转为 01_移植U-Boot/附录_开发环境搭建_Linux系统安装.md）
+*.docx
+
 # 大体积安装包/镜像
 *.zip
 *.tar.xz
