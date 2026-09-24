@@ -56,18 +56,11 @@
 
 错过倒计时也不要紧：trusted 版的 autoboot 只会去扫 mmc 设备（`Boot over mmc0!` → `** Unrecognized filesystem type **`——卡上还没有内核，这是后续章节的课题），不会像 basic 阶段那样挂在网卡上，两行报错后照样落回 `STM32MP>`。想从头看日志，敲 `reset`（或按板上复位键）即可重放一遍。
 
-> **本篇第一个动手项，其实就是给拦停留出反应时间**：`Hit any key to stop autoboot:` 后面那个数字是环境变量 `bootdelay`（单位：秒），出厂/默认环境里它是 **0**——倒计时只有一瞬，全靠看到提示的瞬间按键。进步行符后先把它改成 5 秒存盘，本篇后面每一步（以及第 4 章全部实验）都不用再抢那一下：
->
-> ```
-> setenv bootdelay 5
-> saveenv
-> ```
->
-> `setenv`/`saveenv` 与 `env set`/`env save` 是同一段代码的两个门牌，`help` 列表里四条都在。要是敲下去报 `Unknown command 'setenv'`，先怀疑粘贴带进来的不可见字节（终端粘贴用右键，别从 PDF/网页直接拷），手敲一遍即见分晓。这一步在步骤 4 会正式练（改值 → 存盘 → `reset` 复验倒计时从 5 数起）。
+> **本篇第一个动手项就是"给自己留出反应时间"**：做法见上面「开工自检」那条（`setenv bootdelay 5` + `saveenv`），本篇步骤 4 会正式练一遍"改值 → 存盘 → `reset` 复验倒计时从 5 数起"。要是这两条命令敲下去报 `Unknown command`，先按步骤 2 末尾的排查顺序办——**九成不是命令不存在**。
 
 **实际执行结果**：
 
-![上电到命令行实测动图](./13_实验十二_U-Boot命令行与环境变量操作.assets/QQ20260922-184653-HD.gif)
+![上电到命令行实测动图](./13_实验十二_U-Boot命令行与环境变量操作.assets/02_实测上电到命令行.gif)
 > 图：实测动图——插卡上电后串口的完整过程：TF-A 的 `NOTICE:`/`INFO:` 开场 → U-Boot 横幅（`in trusted mode`、`MMC: 0, 1`、`Net: eth0`）→ 倒计时 → 停在 `STM32MP>` 提示符。2026-09-22 换机换板后的新板实拍。
 
 ### 步骤 2：help 帮助系统与命令行小抄（Slide 3~6）
@@ -80,7 +73,7 @@ STM32MP> help
 
 列出这个 U-Boot 支持的**全部**命令（一屏放不下，逐屏翻完）。`help` 与 `?` 等价。
 
-![help命令列表](./13_实验十二_U-Boot命令行与环境变量操作.assets/02_help命令列表.png)
+![help命令列表](./13_实验十二_U-Boot命令行与环境变量操作.assets/03_help命令列表.png)
 > 图：课件 Slide 3——`STM32MP> help` 输出（节选）：`? - alias for 'help'`、`bdinfo - print Board Info structure`、`bootm - boot application image from memory`、`mmc - MMC sub-system` 等，每行一条"命令名 - 一句话说明"。
 
 查单条命令的详细用法（usage）：
@@ -89,7 +82,7 @@ STM32MP> help
 STM32MP> ? printenv
 ```
 
-![查printenv用法](./13_实验十二_U-Boot命令行与环境变量操作.assets/03_查printenv用法.png)
+![查printenv用法](./13_实验十二_U-Boot命令行与环境变量操作.assets/04_查printenv用法.png)
 > 图：课件 Slide 4——`? printenv` 输出该命令的两行用法：`printenv [-a]` 打印全部环境变量、`printenv name ...` 打印指定名字的环境变量。
 
 另外三条命令行小抄（课件 Slide 5~6，纯文字但天天要用）：
@@ -101,7 +94,7 @@ STM32MP> ? printenv
 | **回车重复** | 空命令行直接回车 = 重复执行上一条命令 |
 | **数值一律十六进制** | 命令的数值型参数（地址、扇区号）都是十六进制，`0x` 前缀可写可不写——`tftp c2000000 uImage` 里的地址就没写 |
 
-> **命令集差异提示**：trusted 版实测 `help` 列表里 `setenv`、`printenv`、`saveenv`、`env` 四条环境变量命令全在，照课件写即可（`env set` / `env print` / `env save` 是同一段代码的另一套门牌，与顶层老名字等价）。第 3 章 basic 版当年报 `printenv` 为 `Unknown command`、改用 `env print`——如今把两边的配置逐条比过，环境变量相关的开关同值（`CONFIG_CMD_SAVEENV=y`、`CONFIG_CMD_ENV_EXISTS=y`、`CONFIG_CMD_NVEDIT_INFO=y`，且这套源码里根本没有 `CMD_SETENV`/`CMD_PRINTENV` 这两个符号），所以那次报错更可能是**粘贴或手打带进来的不可见字符**（零宽字符、全角空格：终端不回显，U-Boot 却把它们算进命令名），留待回切 basic 版时复验。**报 `Unknown command` 的排查顺序**：先手敲一遍同样的命令，再 `help` 查列表，最后才怀疑配置。
+> **命令名有两套，都能用**：`setenv` / `printenv` / `saveenv` 与 `env set` / `env print` / `env save` 是同一段代码的两个门牌，`help` 列表里四条都在——照课件写老名字即可。**万一敲下去报 `Unknown command 'xxx'`**（第 3 章我们真被它坑过一次），按这个顺序查，别一上来就怀疑"命令没编进来"：① **手敲一遍同样的命令**——十有八九是粘贴带进来的不可见字符（零宽空格、全角空格，终端不回显，U-Boot 却把它们算进命令名）；② `help` 里查这条命令在不在；③ 最后才怀疑编译配置。另外，**终端粘贴一律用右键**，别从 PDF 或网页直接拷。
 
 **实际执行结果**（2026-09-22 实测，新板 trusted 版）：`?` 与 `help` 等价，打出来是一整屏按字母排序的命令表——不用背，这一版共 120 条，只要认准里面**环境变量这一族**：`printenv` / `setenv` / `saveenv` / `env`（外加 `editenv`、`eraseenv` 两条暂时用不上）——顶层老名字与 `env` 子命令族两套都在，等价；以及后面几篇要用的 `mmc` / `ext4ls` / `ext4load` / `ext4write` / `tftpboot` / `ping` / `run` / `reset`。
 
@@ -252,7 +245,7 @@ STM32MP>
 STM32MP> bdinfo
 ```
 
-![bdinfo板信息](./13_实验十二_U-Boot命令行与环境变量操作.assets/04_bdinfo板信息.png)
+![bdinfo板信息](./13_实验十二_U-Boot命令行与环境变量操作.assets/05_bdinfo板信息.png)
 > 图：课件 Slide 8——`bdinfo` 输出（节选）：`boot_params = 0xc0000100`（启动参数地址）、`DRAM bank = 0` 的 `-> start = 0xc0000000`（内存起始）与 `-> size`（内存大小）、`baudrate = 115200` 等。
 
 重点关注 DRAM 两行：`start = 0xc0000000` 是 DDR 的物理起始地址——后面 tftp/ext4load 往内存下载文件，地址都从这一带起步；`size` 一行课件截图是 `0x40000000`（1GB 机型），**我们的 512MB 板应显示 `0x20000000`**——实验十一日志里 TF-A 报的 `Memory size = 0x20000000 (512 MB)` 正是同一件事，两个数字可以互证。
@@ -263,7 +256,7 @@ STM32MP> bdinfo
 STM32MP> print
 ```
 
-![print查看环境变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/05_print查看环境变量.png)
+![print查看环境变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/06_print查看环境变量.png)
 > 图：课件 Slide 9——`print` 输出环境变量（节选）：`arch=arm`、`baudrate=115200`、`board=stm32mp1` 等，一屏看不完。课件演示板的 `board_name=stm32mp157d-atk`，我们的板子由自编 U-Boot 报 DK1 设备树信息，变量值不同属正常。
 
 **version** —— 版本信息：
@@ -272,7 +265,7 @@ STM32MP> print
 STM32MP> version
 ```
 
-![version版本信息](./13_实验十二_U-Boot命令行与环境变量操作.assets/06_version版本信息.png)
+![version版本信息](./13_实验十二_U-Boot命令行与环境变量操作.assets/07_version版本信息.png)
 > 图：课件 Slide 10——`version` 输出三行：U-Boot 版本串、交叉编译器版本、链接器版本。
 
 我们的版本串会带着自己的哈希与构建时间（第 3 章收官时卡上镜像为 `2020.01-stm32mp-r1-g88f08870-dirty (Sep 19 2026 - 14:51:04 +0800)`），与课件截图的 `2020.01-stm32mp-r1 (Nov 24 2020 ...)` 必然不同——看结构，不看数值。这条命令还能反查"卡上跑的到底是哪次构建"，第 3 章的版本串接力就是靠它（SPL/U-Boot 横幅）做的。
@@ -403,7 +396,7 @@ STM32MP> saveenv
 
 `setenv env_name env_value`——环境变量的值都是字符串；`bootdelay 5` 的 `5` 也是字符串 `"5"`，只是 U-Boot 用它时按数字解释。`saveenv` 把**整套**环境变量写回 flash（我们板上即 SD 卡的 ssbl 分区）：
 
-![setenv改bootdelay](./13_实验十二_U-Boot命令行与环境变量操作.assets/07_setenv改bootdelay.png)
+![setenv改bootdelay](./13_实验十二_U-Boot命令行与环境变量操作.assets/08_setenv改bootdelay.png)
 > 图：课件 Slide 12——`setenv bootdelay 5` 后执行 `saveenv`，输出 `Saving Environment to MMC... Writing to redundant MMC(1)... OK`。（华清演示板从 eMMC 启动所以写 MMC(1)；我们从 SD 卡启动，应见 `Writing to MMC(0)` 与 `Writing to redundant MMC(0)` 两条——主副本 + 冗余副本，实验九设网络变量时见过。）
 
 敲 `reset` 复位，拦停——这回倒计时从容地数 `5、4、3、2、1、0`，五秒窗口，以后拦停再也不用手忙脚乱。
@@ -444,7 +437,7 @@ STM32MP> setenv author 'console=ttySTM0,115200 root=/dev/mmcblk2p2 rootwait rw'
 STM32MP> saveenv
 ```
 
-![新增author变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/08_新增author变量.png)
+![新增author变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/09_新增author变量.png)
 > 图：课件 Slide 13——`setenv author '...'` 新建环境变量，值含空格必须用引号引起来，随后 saveenv 保存。
 
 两个语法点：
@@ -454,7 +447,7 @@ STM32MP> saveenv
 
 用 `print author` 验证：
 
-![author变量生效](./13_实验十二_U-Boot命令行与环境变量操作.assets/09_author变量生效.png)
+![author变量生效](./13_实验十二_U-Boot命令行与环境变量操作.assets/10_author变量生效.png)
 > 图：课件 Slide 13——`print` 输出中红框标出新建的 `author=console=ttySTM0,11520 root=/dev/mmcblk2p2 rootwait rw`，与相邻变量并排出现。（课件截图里波特率少了一个 0，值本身无意义，不必纠结。）
 
 **实际执行结果**：
@@ -481,7 +474,7 @@ STM32MP> setenv author
 STM32MP> saveenv
 ```
 
-![删除author变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/10_删除author变量.png)
+![删除author变量](./13_实验十二_U-Boot命令行与环境变量操作.assets/11_删除author变量.png)
 > 图：课件 Slide 14——`setenv author`（赋空值即删除）后 saveenv 保存。
 
 接下来做一组**对照实验**，把 4.3 节最重要的一句纪律钉死——课件原话：*对环境变量进行修改后，要用 saveenv 命令把修改保存到 flash，否则修改只在内存中，重启会丢失*。空口无凭，亲测一次：

@@ -87,7 +87,7 @@ dtb 文件名长，逐字核对（Tab 不补文件名，实验十五提过）。
 - `Booting Linux on physical CPU 0x0`、`Linux version ...`——内核活了；
 - `Machine model: ...`——报的是板子厂商标识（出厂 TF-A 在实验十一自报过同款，同一家的出厂设备树）。**实测这一行是 `HQYJ STM32MP157 FSMP1A MIPI Discovery Board`，见下方 ③**。
 
-**预期结局**：内核日志滚到某处停下——大概率是 `VFS: Unable to mount root fs` 或 kernel panic 一类。**这不是失败**：我们没传 bootargs（`bootargs` 环境变量还空着）、板上也没有它能认的根文件系统——内核无根可挂，只好停住。这行报错就是第 5 章的大门：内核移植篇要做的正是"自己编内核 + 自己给根文件系统"。记录下**日志停在哪一行**——那是第 5 章的起跑线。（实测停在 `Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)`，见下方 ④。）
+**预期结局**：内核日志滚到某处停下——大概率是 `VFS: Unable to mount root fs` 或 kernel panic 一类。**这不是失败**：我们没传 `bootargs`（这个环境变量还空着——**它是 U-Boot 在点火那一刻传给内核的启动参数串**，`console=`（日志往哪个串口发）、`root=`（根文件系统在哪）全写在里面，第 5、6 章会正式用到），板上也没有它能认的根文件系统——内核无根可挂，只好停住。这行报错就是第 5 章的大门：内核移植篇要做的正是"自己编内核 + 自己给根文件系统"。记录下**日志停在哪一行**——那是第 5 章的起跑线。（实测停在 `Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)`，见下方 ④。）
 
 **看门狗彩蛋**：若内核停住约半分钟后板子自己复位（TF-A 横幅重新滚起），是启动横幅里那句 `WDT: Started with servicing (32s timeout)` 的看门狗在履行职责——没人喂狗了，它按约定复位系统，属正常收场。按复位键或等它自己复位，回到 `STM32MP>`。（本次就是这个结局，复位原因被 TF-A 打印成 `IWDG2 Reset`，见下方 ⑤。）
 
