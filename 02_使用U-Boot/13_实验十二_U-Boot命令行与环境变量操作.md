@@ -15,7 +15,7 @@
 | 项目 | 实际值 |
 |---|---|
 | 板子状态 | 第 3 章收官形态：SD 卡启动（拨码 `101`），trusted 版 U-Boot，`STM32MP>` 稳定可达 |
-| 串口 | MobaXterm Serial 会话，115200；`COM11` 是**旧电脑**上的实测值，换机后以 Windows 设备管理器里板载 ST-Link 的串口号为准（新机上可能还要先装 ST-LINK 驱动） |
+| 串口 | MobaXterm Serial 会话，115200；`COM11` 是**旧电脑**上的实测值，**新电脑上实测 `COM10`**（2026-09-24 起，标题栏为 `STMicroelectronics STLink Virtual COM Port (COM10)`）；换机后一律以 Windows 设备管理器里板载 ST-Link 的串口号为准（新机上可能还要先装 ST-LINK 驱动） |
 | 环境变量基线 | 实验九设定并 saveenv：`ethaddr`、`ipaddr 192.168.0.8`、`netmask 255.255.255.0`，存于 SD 卡 |
 | 本篇新增材料 | 无——不动源码、不编译、不烧写 |
 

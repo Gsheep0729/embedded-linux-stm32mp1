@@ -22,7 +22,7 @@ SD 卡和 eMMC 用的同一类控制器，U-Boot 统一编为 mmc 设备：**0 �
 | 项目 | 实际值 |
 |---|---|
 | 板子状态 | trusted 版 U-Boot，倒计时 5 秒，`STM32MP>` 可达 |
-| 串口 | MobaXterm Serial 会话，115200（`COM11` 是旧电脑的值，新机上以 Windows 设备管理器里的 ST-Link 串口号为准） |
+| 串口 | MobaXterm Serial 会话，115200；**新机上实测 `COM10`**（会话标题栏为 `STMicroelectronics STLink Virtual COM Port (COM10)`，2026-09-24）；`COM11` 是旧电脑的值，换机后一律以 Windows 设备管理器里的 ST-Link 串口号为准 |
 | SD 卡（mmc 0） | 32GB，`Name: SD32G`、`29.7 GiB`、4-bit；实验四分区：fsbl1 / fsbl2 / ssbl / bootfs / rootfs 五区（步骤 4 末 `mmc part` 实测复核）；自编 trusted U-Boot 在 fsbl1/fsbl2/ssbl；bootfs/rootfs 尚未建文件系统 |
 | eMMC（mmc 1） | 4GB 芯片（实验十 `mmc info`：004GA、MMC 5.0、3.7 GiB、8-bit）；**分区表本篇步骤 4 已探明 = GPT 五分区** ssbl(2 MiB) / bootfs(64 MiB) / vendorfs(16 MiB) / rootfs(1.13 GiB) / userfs(2.41 GiB)，带着华清的出厂系统 |
 | 环境变量基线 | 实验九网络三件套 + 实验十三的 `serverip`；`bootdelay 5` |
