@@ -90,7 +90,7 @@
 ### 步骤 2：编译 led.ko 与 ledApp，部署
 
 ```bash
-# Ubuntu，02-led/ 里（Makefile 的 KERNELDIR 已按第 7 章同款改好、obj-m 改为 led.o）
+# Ubuntu，02-led/ 里先 `nano Makefile` 改一处：**Ctrl+W** 搜 `KERNELDIR`，把第 1 行改成你的内核源码树路径（**Ctrl+O** 回车保存、**Ctrl+X** 退出——键位卡见实验二十步骤 1）；`obj-m := led.o` 素材包已预填，不用动
 make
 arm-none-linux-gnueabihf-gcc ledApp.c -o ledApp
 cp led.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/

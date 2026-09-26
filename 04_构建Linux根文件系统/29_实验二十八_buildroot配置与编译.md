@@ -51,7 +51,7 @@
 官网 https://buildroot.org 下载 2020.02.6；**课程资料包里已有** `buildroot-2020.02.6.tar.bz2`，拷进虚拟机共享目录解压：
 
 ```bash
-cd ~/Desktop/LINUX-gy/Test2
+cd <共享目录>
 tar xf buildroot-2020.02.6.tar.bz2     # 解出 buildroot-2020.02.6/
 cd buildroot-2020.02.6
 ```

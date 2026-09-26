@@ -173,6 +173,8 @@ nano /etc/ssh/sshd_config      # 找到 #PermitRootLogin yes，删掉行首的 #
 /etc/init.d/S50sshd restart
 ```
 
+（nano 改 sshd_config：**Ctrl+W** 搜 `PermitRootLogin` 定位、删掉行首 `#` 后 **Ctrl+O** 回车保存、**Ctrl+X** 退出——键位卡见实验二十步骤 1。）
+
 ![PermitRootLogin](./37_实验三十六_buildroot支持QT5与新系统启动.assets/13_PermitRootLogin.png)
 > 图：课件 Slide 25——/etc/ssh/sshd_config 的 Authentication 段：`PermitRootLogin yes` 一行的注释符 # 已删除（黄色高亮），周围 #LoginGraceTime 等行保持注释。
 

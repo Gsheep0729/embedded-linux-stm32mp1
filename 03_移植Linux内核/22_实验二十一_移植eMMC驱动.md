@@ -50,7 +50,14 @@
 
 ### 步骤 1：设备树加 sdmmc2 节点（Slide 47~48）
 
-打开 `arch/arm/boot/dts/stm32mp15xx-fsmp1x.dtsi`，找到已有的 `&sdmmc1` 节点（带 `/*sdmmc1 TF 卡*/` 注释，约第 136~148 行——就是实验二十彩蛋②里那个 `cd-gpios` 用 `gpioh 3` 的节点），**在它后面、`&sram` 节点之前**插入课件给出的整段：
+```bash
+cd <共享目录>/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31      # 内核源码顶层（与实验二十同款；新开终端就要重新 cd）
+nano arch/arm/boot/dts/stm32mp15xx-fsmp1x.dtsi
+```
+
+（**Ctrl+W** 搜索 `sdmmc1 TF 卡` 回车定位；改完 **Ctrl+O** 回车保存、**Ctrl+X** 退出——nano 键位卡见实验二十步骤 1，下同。）
+
+打开文件后找到已有的 `&sdmmc1` 节点（带 `/*sdmmc1 TF 卡*/` 注释，约第 136~148 行——就是实验二十彩蛋②里那个 `cd-gpios` 用 `gpioh 3` 的节点），**在它后面、`&sram` 节点之前**插入课件给出的整段：
 
 ```c
 /*sdmmc2 eMMC*/
@@ -71,8 +78,8 @@
 };
 ```
 
-![dtsi加sdmmc2节点](./22_实验二十一_移植eMMC驱动.assets/01_dtsi加sdmmc2节点.png)
-> 图：课件 Slide 48——`stm32mp15xx-fsmp1x.dtsi` 第 150~165 行的新增内容截图（课件作者文件里的行号；我们的文件按步骤 3 落点插好即可），与我们上面抄的完全一致。
+![实测dtsi加sdmmc2节点](./22_实验二十一_移植eMMC驱动.assets/01_dtsi加sdmmc2节点.png)
+> 图：实测（顶替课件 Slide 48）——nano 4.8 里改好的样子：`/*sdmmc2 eMMC*/ &sdmmc2 { ... }` 整段已插入 `&sdmmc1` 节点之后，`git diff` 确认只有这一段新增。
 
 **这一段不用背，但每个属性值得认识一遍**（与实验十四、F-1/F-2/F-6 的 U-Boot 经历逐条对上）：
 
@@ -103,11 +110,18 @@ Device Drivers --->
         [*] STMicroelectronics STM32 SDMMC Controller
 ```
 
+> **menuconfig 三招（小白版，本系列通用）**：
+> ① **进子菜单**：用**方向键**把光标移到 `--->` 结尾的行上，按**回车**进入；按 **Esc** 返回上一层。
+> ② **选中 / 取消选中**：光标移到选项行，按**空格键**在 `[*]`（选中）和 `[ ]`（取消）之间来回切；也可以按 **Y** 直接选中、**N** 直接取消（带 `<M>` 的三态项则是 `[*]`→`<M>`→`[ ]` 三档循环）。
+> ③ **退出并保存**：连按两次 **Esc**（或选 `<Exit>`）逐层退出；退出最外层时会问 `Do you wish to save your new configuration?`——用方向键选 **Yes** 回车。**不保存 = 白改**，这是 menuconfig 头号坑。
+>
+> 本篇预期"它已经是 `[*]`"（`default y` 机制），所以三招一次都用不上也没关系——亲眼确认一遍就是收获。
+
 ![menuconfig路径说明](./22_实验二十一_移植eMMC驱动.assets/02_menuconfig路径说明.png)
 > 图：课件 Slide 49——menuconfig 修改路径：`Device Drivers ---> <*> MMC/SD/SDIO card support --->`，选中 `[*] STMicroelectronics STM32 SDMMC Controller`。
 
 ![menuconfig勾选SDMMC](./22_实验二十一_移植eMMC驱动.assets/03_menuconfig勾选SDMMC.png)
-> 图：课件 Slide 50——MMC/SD/SDIO 菜单实拍：`<*> ARM AMBA Multimedia Card Interface support`、高亮的 `[*] STMicroelectronics STM32 SDMMC Controller`、`<*> Secure Digital Host Controller Interface support` 等。**预期它已经是 `[*]`**（`default y` 机制——实验二十步骤 6 讲过）；万一显示 `[ ]`（比如换过别的 defconfig），按空格/Y 勾上，一路 `<Exit>` 退出并在提示时选 `<Save>`。
+> 图：课件 Slide 50——MMC/SD/SDIO 菜单实拍：`<*> ARM AMBA Multimedia Card Interface support`、高亮的 `[*] STMicroelectronics STM32 SDMMC Controller`、`<*> Secure Digital Host Controller Interface support` 等。**预期它已经是 `[*]`**（`default y` 机制——实验二十步骤 6 讲过）；万一显示 `[ ]`（比如换过别的 defconfig），按上面"三招"勾上并保存。
 
 **就地验证**：
 
@@ -130,7 +144,9 @@ ls -l arch/arm/boot/uImage arch/arm/boot/dts/stm32mp157a-fsmp1a.dtb
 # 两者的修改时间应是刚才；uImage 字节数与实验二十那份不同（配置生效、代码量变了），记下新数
 ```
 
-> **验收预告（本篇不点火，实验二十三验收）**：用这对新文件点火后，内核日志里应出现 eMMC 的报到行——`mmcX: new ... MMC card at address 0001` 与 `mmcblkY: mmcX:0001 004GA0 3.69 GiB`。**Y 的编号以日志实录为准**：我们的设备树没写 mmc 别名，Linux 按探测顺序给盘编号，实验十六出厂 dtb 下的 `mmcblk2` 只是参照、不必照搬；认盘认"3.69 GiB + p1~p5 分区"，别认死编号。实验二十步骤 6 说的"认不出 eMMC"，到这一步就该翻面了。
+> **验收预告（本篇不点火，实验二十三验收）**：用这对新文件点火后，内核日志里应出现 eMMC 的报到行——`mmcX: new ... MMC card at address 0001` 与 `mmcblkY: mmcX:0001 004GA0 3.69 GiB`。**Y 的编号以日志实录为准**：我们的设备树没写 mmc 别名，Linux 按探测顺序给盘编号，实验十六出厂 dtb 下的 `mmcblk2` 只是参照、不必照搬；认盘认"3.69 GiB + p1~p5 分区"，别认死编号。
+
+> **本篇不单独提交 git**：实验二十一（eMMC）与实验二十二（网卡）改的是同一个 `fsmp1x.dtsi`、同属"第 5 章驱动移植"一组改动，分开提交界线模糊——**两篇的改动一起在实验二十二收官时提交一条**（`FS-MP1A eMMC 与网卡驱动（实验二十一/二十二）`，命令见实验二十二篇尾）。本篇改动先留在工作区：`git status --short` 能看到 dtsi 与 `.config` 的未提交改动，属正常；此时内核版本串会带 `-dirty`（实验十九步骤 3.3 的机制），也别当异常。实验二十步骤 6 说的"认不出 eMMC"，到这一步就该翻面了。
 
 ## 五、注意事项
 

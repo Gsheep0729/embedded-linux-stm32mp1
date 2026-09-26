@@ -19,3 +19,6 @@ en.SDK-*/
 *.tar.bz2
 *.tar.gz
 *.rar
+*.mp4
+!*runbootcmd点火*_metool.mp4
+.zcode/

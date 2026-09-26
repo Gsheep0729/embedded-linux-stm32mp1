@@ -60,7 +60,7 @@ busybox 的三件礼物，实验二十六会逐个拆开用：
 ### 步骤 1：解压源码，顶层 Makefile 指定交叉编译器（Slide 19）
 
 ```bash
-cd ~/Desktop/LINUX-gy/Test2        # 工作目录按你的共享目录来
+cd <共享目录>        # 工作目录按你的共享目录来
 tar xf busybox-1.32.0.tar.bz2      # 解出 busybox-1.32.0/
 cd busybox-1.32.0
 ```
@@ -204,18 +204,18 @@ ls arm-none-linux-gnueabihf/libc/lib/libc.so*
 | ⑥ gconv 目录 | 字符集动态库 | 不要（按需才拷） |
 | ⑦ ldscripts 目录 | 连接脚本 | 不要——编译时用 |
 
-好在 ①② 的后缀都是 `*.so*`，一条 `cp` 通吃（`-d` 表示**连符号连接一起原样拷**——libc 目录里 `libc.so.6` 是指向 `libc-2.30.so` 的连接，不加 `-d` 会把整个库实体重复拷一遍）：
+好在 ①② 的后缀都是 `*.so*`，一条 `cp` 通吃（`-d` 表示**连符号连接一起原样拷**——libc 目录里 `libc.so.6` 是指向 `libc-2.30.so` 的连接，不加 `-d` 会把整个库实体重复拷一遍）。**注意此刻人还在编译器目录里**——`..` 指不到共享目录那边，所以复制与验证的目标都用 `<共享目录>` 前缀写全：
 
 ```bash
-cp arm-none-linux-gnueabihf/libc/lib/*.so* <你的路径>/rfs-busybox/lib/ -d
-# lib 目录不存在就先 mkdir ../rfs-busybox/lib
-ls ../rfs-busybox/lib | head     # ld-linux-armhf.so.3、libc.so.6、libm.so.6... 在列
+cp arm-none-linux-gnueabihf/libc/lib/*.so* <共享目录>/rfs-busybox/lib/ -d
+# lib 目录不存在就先 mkdir -p <共享目录>/rfs-busybox/lib
+ls <共享目录>/rfs-busybox/lib | head     # ld-linux-armhf.so.3、libc.so.6、libm.so.6... 在列
 ```
 
-**验一下拷对了没有**——用 readelf 看 busybox 声明依赖哪些库，与拷进来的对账：
+**验一下拷对了没有**——用 readelf 看 busybox 声明依赖哪些库，与拷进来的对账（同样写全 `<共享目录>` 前缀，别用 `../`）：
 
 ```bash
-arm-none-linux-gnueabihf-readelf ../rfs-busybox/bin/busybox -a | grep "Shared"
+arm-none-linux-gnueabihf-readelf <共享目录>/rfs-busybox/bin/busybox -a | grep "Shared"
 ```
 
 ![readelf查依赖](./26_实验二十五_busybox构建根文件系统.assets/18_readelf查依赖.png)

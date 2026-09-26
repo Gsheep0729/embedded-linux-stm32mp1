@@ -131,6 +131,8 @@ buildroot 默认提示符单调。buildroot 的 `/etc/profile`（与实验二十
 nano /home/cnu/nfsboot/rfs-buildroot/etc/profile.d/myprofile.sh
 ```
 
+（nano 键位：**Ctrl+O** 回车保存、**Ctrl+X** 退出，完整卡见实验二十步骤 1。）
+
 ```sh
 #!/bin/sh
 
@@ -159,7 +161,7 @@ fi
 驱动调试常要看 `/sys/kernel/debug`，但它是空壳——**debugfs 文件系统**没挂。buildroot 的 init 机制给了个优雅的入口：`/etc/init.d/` 下**大写 S 开头**的文件会被 rcS 自动执行（`for i in /etc/init.d/S??*` 遍历；.sh 用 source 执行、其他按 `$i start` 派生）——这是 sysvinit 风格的"自启脚本槽位"：
 
 ```bash
-nano /home/cnu/nfsboot/rfs-buildroot/etc/init.d/Sautorun
+nano /home/cnu/nfsboot/rfs-buildroot/etc/init.d/Sautorun   # 键位同步骤 4：Ctrl+O 回车保存、Ctrl+X 退出
 ```
 
 ```sh

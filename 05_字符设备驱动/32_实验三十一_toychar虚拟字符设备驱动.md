@@ -64,11 +64,11 @@ toychar 的三个版本对应实验三十"核心三步"，每一步加一行家�
 把 `drivers-dev.zip`（在本章目录 `05_字符设备驱动/`）拷进虚拟机共享目录解压，进 `01-toychar/`：
 
 ```bash
-cd ~/Desktop/LINUX-gy/Test2/drivers-dev/01-toychar    # 按你的共享目录来
+cd <共享目录>/drivers-dev/01-toychar    # 按你的共享目录来
 ls    # Makefile  toychar1.c  toychar2.c  toychar3.c  toycharApp.c
 ```
 
-打开 `Makefile`，**第 1 行 KERNELDIR 改成你的内核源码树**（zip 里预填的是课件作者机器的路径）：
+`nano Makefile` 打开（保存退出键同实验二十步骤 1 的 nano 卡），**第 1 行 KERNELDIR 改成你的内核源码树**（zip 里预填的是课件作者机器的路径；定位用 **Ctrl+W** 搜 `KERNELDIR` 即可）：
 
 ```makefile
 KERNELDIR := /home/cnu/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31/

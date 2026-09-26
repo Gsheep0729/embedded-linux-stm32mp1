@@ -105,6 +105,8 @@ sudo nano /etc/exports
 /home/cnu/nfsboot  *(rw,sync,no_root_squash,no_subtree_check)
 ```
 
+（nano 键位：改完 **Ctrl+O** 回车保存、**Ctrl+X** 退出——完整键位卡见实验二十步骤 1，本系列通用。）
+
 ![exports配置](./28_实验二十七_NFS挂载根文件系统.assets/01_exports配置.png)
 > 图：课件 Slide 50——`/etc/exports` 文件截图：前面是注释掉的示例，末行新添加 `/home/cnu/nfsboot *(rw,sync,no_root_squash,no_subtree_check)`（红框）。
 
