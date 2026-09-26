@@ -21,7 +21,7 @@ dtsled.c 的 OF 四件套正好是实验三十四第四节的四个函数：`of_
 |---|---|
 | 操作位置 | Ubuntu（改 dts + make dtbs + 编驱动）；板上点火 + 加载测试 |
 | 根文件系统 | buildroot 版 `rfs-buildroot`（NFS） |
-| 素材 | `drivers-dev.zip` 的 `04-dtsled/`（dtsled.c 290 行 + ledApp.c 同款 + Makefile） |
+| 素材 | `drivers-dev.zip` 的 `04-dtsled/`（dtsled.c 290 行 + ledApp.c 同款 + Makefile）——**zip 已在第 7 章目录（`05_字符设备驱动/`）复制解压过，本篇不重复复制**（第 7~9 章共用这一个包） |
 | 板上点火文件 | dtb 要换新的（步骤 1 重编）；uImage 沿用实验二十七的 |
 
 > **开工自检（10 秒）**：板上能进命令行（NFS 根）；`ls /proc/device-tree/` 能列出根节点目录（设备树在线，实验三十四第三节）；04-dtsled/ 素材在。

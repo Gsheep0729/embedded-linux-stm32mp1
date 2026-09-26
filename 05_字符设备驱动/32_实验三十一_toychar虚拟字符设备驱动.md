@@ -29,7 +29,7 @@ toychar 的三个版本对应实验三十"核心三步"，每一步加一行家�
 | 内核源码树 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31`（实验十九~的树，**KERNELDIR 就指它**） |
 | 编译器 | `arm-none-linux-gnueabihf-`（实验十九）——**必须与编内核的同一套**，否则模块版本对不上加载报错 |
 | 根文件系统 | buildroot 版 `rfs-buildroot`（`/lib/modules/5.4.31/` 与 kmod 已就位，实验二十九） |
-| 素材 | `drivers-dev.zip`（md5 `7fa1d58d1e6f082f4f553230bde7ddcb`）→ `01-toychar/`：toychar1/2/3.c、toycharApp.c、Makefile |
+| 素材 | `drivers-dev.zip`（md5 `7fa1d58d1e6f082f4f553230bde7ddcb`）——**已复制到本章目录**（`05_字符设备驱动/`）；解压后 `01-toychar/`：toychar1/2/3.c、toycharApp.c、Makefile（02-led/03-mdevled/04-dtsled 留给第 8、9 章，同一个包不重复复制） |
 
 > **开工自检（10 秒）**：`ls /home/cnu/nfsboot/rfs-buildroot/lib/modules/` 见 `5.4.31`（与 `uname -r` 同串——实验二十九的成果）；`make -C <内核树> kernel_version 2>/dev/null || head -5 <内核树>/Makefile` 能看到 5.4.31（源码树在）；驱动素材解压在位。
 
@@ -61,7 +61,7 @@ toychar 的三个版本对应实验三十"核心三步"，每一步加一行家�
 
 ### 步骤 1：准备素材，改 Makefile 的内核路径（Slide 19）
 
-把 `drivers-dev.zip` 拷进共享目录解压，进 `01-toychar/`：
+把 `drivers-dev.zip`（在本章目录 `05_字符设备驱动/`）拷进虚拟机共享目录解压，进 `01-toychar/`：
 
 ```bash
 cd ~/Desktop/LINUX-gy/Test2/drivers-dev/01-toychar    # 按你的共享目录来

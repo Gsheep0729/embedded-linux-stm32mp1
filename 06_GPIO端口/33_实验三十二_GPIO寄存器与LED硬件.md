@@ -138,7 +138,7 @@ void iounmap(volatile void __iomem *addr);                        // 用完必�
 |---|---|
 | 板子 | 第 7 章收官形态；三颗绿色 LED 在板上（PZ5/PZ6/PZ7，高电平点亮） |
 | Ubuntu | gcc-arm-9.2 + 内核源码树 + drivers-dev.zip 已解（01-toychar 用过） |
-| 本篇材料 | `drivers-dev.zip` 的 `02-led/`（led.c + ledApp.c + Makefile）——实验三十三编译 |
+| 本篇材料 | `drivers-dev.zip` 的 `02-led/`（led.c + ledApp.c + Makefile）——**不重复复制**：这个包已在第 7 章目录（`05_字符设备驱动/`）复制并解压过，直接取里面的 `02-led/` 子目录（实验三十三编译） |
 
 > **开工自检（10 秒）**：本篇是认知篇（读图与源码预读）。确认 `02-led/led.c` 里 6 个 `ioremap`、`#if 0` 时钟段、BSRR 的 `1<<5`/`1<<21` 都能对上本篇讲过的寄存器——对上了，实验三十三的代码就没有一行是新的。
 

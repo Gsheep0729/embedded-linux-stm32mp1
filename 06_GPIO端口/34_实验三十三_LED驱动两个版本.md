@@ -21,7 +21,7 @@
 |---|---|
 | 操作位置 | Ubuntu 编译两个驱动 + ledApp；板上加载、测试 |
 | 根文件系统 | buildroot 版 `rfs-buildroot`（NFS） |
-| 素材 | `drivers-dev.zip` 的 `02-led/`（led.c 247 行 + ledApp.c 65 行 + Makefile）、`03-mdevled/`（mdevled.c 290 行 + 同款 ledApp + Makefile） |
+| 素材 | `drivers-dev.zip` 的 `02-led/`（led.c 247 行 + ledApp.c 65 行 + Makefile）、`03-mdevled/`（mdevled.c 290 行 + 同款 ledApp + Makefile）——**zip 已在第 7 章目录（`05_字符设备驱动/`）复制解压过，本篇不重复复制**，同一包用三章、各取所需子目录 |
 | 板上硬件 | 三颗绿色 LED（PZ5/PZ6/PZ7），本篇操作 LED1 |
 
 > **开工自检（10 秒）**：toychar 的 `*.ko` 已从板上卸干净（`lsmod` 无残留）；`02-led/Makefile` 的 KERNELDIR 已指本机内核树（第 7 章同款改动）；板上三颗灯当前状态看一眼（出厂 TF-A 使能时钟后引脚默认态不定，驱动加载会显式开灯）。
