@@ -9,6 +9,7 @@
 | `PPT/` | 10 章课件 PPT → Markdown 图文完整版（配图按章归档于 `PPT/images/chapNN/`） |
 | `01_移植U-Boot/` | 博客原稿：第 3 章「移植 U-Boot」实验系列（实验导论 + 各实验指导，指导与真实终端记录合二为一） |
 | `02_使用U-Boot/` | 博客原稿：第 4 章「使用 U-Boot」实验系列 |
+| `03_移植Linux内核/` | 博客原稿：第 5 章「移植 Linux 内核」实验系列 |
 | `CLAUDE.md` | 仓库内部维护约定（AI 协作工作流说明），浏览内容可忽略 |
 
 > 原始 `.dps/.pptx` 课件与 SDK 安装包体积较大，未入库（见 `.gitignore`）。
@@ -31,6 +32,17 @@
 | 11 | [实验十：F-6 支持 eMMC](01_移植U-Boot/11_实验十_F-6支持eMMC.md) | 设备树新增 sdmmc2 节点与启动通道，串口出现 MMC1 |
 | 12 | [实验十一：trusted 版 U-Boot 移植](01_移植U-Boot/12_实验十一_trusted版U-Boot移植.md) | TF-A 接任 FSBL、配置重做三处，`in trusted mode` 收官 |
 | 13 | [实验十二：U-Boot 命令行与环境变量](02_使用U-Boot/13_实验十二_U-Boot命令行与环境变量操作.md) | 第 4 章开篇：进入命令行、查询三件套、setenv/saveenv 纪律 |
+| 14 | [实验十三：网络操作命令与 TFTP 服务器搭建](02_使用U-Boot/14_实验十三_网络操作命令与TFTP服务器搭建.md) | ping/dhcp/nfs 认知、Ubuntu tftpd-hpa 服务器、tftp 实测 |
+| 15 | [实验十四：eMMC 和 SD 卡操作命令](02_使用U-Boot/15_实验十四_eMMC和SD卡操作命令.md) | mmc 全家桶、eMMC GPT 五分区摸底、硬件分区访问窗口 |
+| 16 | [实验十五：ext4 文件系统操作命令](02_使用U-Boot/16_实验十五_ext4文件系统操作命令.md) | ext4ls/load/write 三条、"网络 → 内存 → eMMC"落盘全链路 |
+| 17 | [实验十六：启动 Linux 内核命令](02_使用U-Boot/17_实验十六_启动Linux内核命令.md) | bootm 首次点火出厂 Linux 5.4.31（止于无根 panic）、bootcmd 固化 |
+| 18 | [实验十七：其他命令与自定义启动变量](02_使用U-Boot/18_实验十七_其他命令与自定义启动变量.md) | reset 与复位原因、run、mybootnet/mybootemmc 两条启动路径 |
+| 19 | [实验十八：认识 Linux 内核](03_移植Linux内核/19_实验十八_认识Linux内核.md) | 第 5 章开篇：版本号四字段、源码目录、内核文件四兄弟、menuconfig 三态 |
+| 20 | [实验十九：内核源码准备与配置](03_移植Linux内核/20_实验十九_内核源码准备与配置.md) | ARM 官方 gcc-arm-9.2（清华镜像）、mkimage、23 个 ST 补丁、fragment 合并、存档 defconfig |
+| 21 | [实验二十：编译内核与设备树](03_移植Linux内核/21_实验二十_编译内核与设备树.md) | 顶层 Makefile 两行、`make uImage LOADADDR=0xC2000040`、放入 fsmp1a 设备树、`make dtbs` |
+| 22 | [实验二十一：移植 eMMC 驱动](03_移植Linux内核/22_实验二十一_移植eMMC驱动.md) | 设备树加 sdmmc2 节点（控制器驱动 default y 天生已在）、重编译 |
+| 23 | [实验二十二：移植网卡驱动](03_移植Linux内核/23_实验二十二_移植网卡驱动.md) | MAE0621A 四处齐动：驱动源码覆盖 phy_device.c、Makefile/Kconfig/menuconfig、ethernet0 节点 |
+| 24 | [实验二十三：运行内核](03_移植Linux内核/24_实验二十三_运行内核.md) | 自己的内核点火、bootargs 借出厂根文件系统、走进 Linux 命令行 |
 
 ## 文档特点
 
@@ -51,7 +63,7 @@
 
 - 第 3 章「移植 U-Boot」全系列（实验导论 + 实验一~十一：F-1~F-6 驱动修复、trusted 版收官）——已完成，见上方导读 01~12；另附两篇备查附录《附录 换电脑 / 换板子后，快速恢复到实验十一结束状态》《附录 开发环境搭建——Linux系统安装》（后者是课程配套 docx 的原样转换 + 虚拟机网络/共享的踩坑记录）
 - 第 4 章「使用 U-Boot」全系列（已完成）——导读 13 起续更；实验十二~十七全部实机跑通（2026-09-22 ~ 2026-09-24）：命令行与环境变量、网络与 Ubuntu `tftpd-hpa` 服务器（与课件同款路线）、`mmc` 全家桶与 eMMC 分区摸底、ext4 三条命令与"网络 → 内存 → eMMC"落盘、`bootm` 首次点火 Linux 5.4.31（止于无根文件系统 panic，属预期）、`reset`/`run` 与自定义启动变量一键切换。第 5 章《移植 Linux 内核》起接续
-- 第 5 章「移植 Linux 内核」系列（指导成稿，实验待做）——导读 19~24：实验十八认识 Linux 内核（版本号/源码目录/内核文件四兄弟）、实验十九源码准备与配置（ARM 官方交叉编译器、mkimage、ST 源码打补丁、`stm32_fsmp1a_defconfig`）、实验二十编译内核与设备树（`make uImage LOADADDR=0xC2000040` + `make dtbs`）、实验二十一移植 eMMC 驱动（sdmmc2 节点 + STM32 SDMMC）、实验二十二移植网卡驱动（MAE0621A 四处齐动）、实验二十三运行内核（bootargs 借出厂根，走进 Linux 命令行）
+- 第 5 章「移植 Linux 内核」系列（导读 19~24，六篇指导 2026-09-26 优化定稿；实验十九已实测，二十~二十三待实机跑）——实验十八认识 Linux 内核（版本号/源码目录/内核文件四兄弟）、实验十九源码准备与配置（ARM 官方 gcc-arm-9.2 走清华 TUNA 镜像、mkimage、ST 源码解压 + 23 个补丁 + fragment 合并 + 存档 `stm32_fsmp1a_defconfig`，已实测）、实验二十编译内核与设备树（`make uImage LOADADDR=0xC2000040` + `make dtbs`）、实验二十一移植 eMMC 驱动（sdmmc2 节点为主角，控制器驱动 `default y` 天生已在）、实验二十二移植网卡驱动（MAE0621A 四处齐动，`phy_device.c` 覆盖内核同名文件）、实验二十三运行内核（bootargs 借出厂根，走进 Linux 命令行）。优化定稿要点：补丁总数纠错为 23 个（课件截图只拍到末尾 4 个）、设备树"新命名"文件出自 0020-DEVICETREE 补丁、盘号以点火日志实录为准（内核无 mmc 别名）、我们自己的 dtb `model` 不带 MIPI、文件编号修复 22 撞号（实验二十二→23、实验二十三→24）
 - 第 6~10 章实验（待写）：根文件系统（BusyBox/Buildroot）、字符设备驱动、GPIO、设备树、Qt GUI
 
 ## 版权说明
