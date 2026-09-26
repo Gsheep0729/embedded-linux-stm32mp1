@@ -27,7 +27,7 @@ FS-MP1A 出厂跑的是 trusted，但教学上**先 basic 后 trusted**：basic 
 | 项目 | 实际值 |
 |---|---|
 | 虚拟机 | 同实验一（4GB 内存） |
-| 源码目录 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01` |
+| 源码目录 | `~/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/u-boot-stm32mp-2020.01-r0/u-boot-stm32mp-2020.01`——注意路径末段：**带 `-r0` 的是材料包层，本篇全程在最末这个不带 `-r0` 的源码顶层里操作**（层级图与认层判据见实验二步骤 2） |
 | 分支 | WORKING（7 条提交：源码 + 6 补丁） |
 | 工具链 | `/opt/st/stm32mp1/3.1-openstlinux-5.4-dunfell-mp1-20-06-24` |
 
