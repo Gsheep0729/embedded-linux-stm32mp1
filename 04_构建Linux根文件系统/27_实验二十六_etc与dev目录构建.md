@@ -72,7 +72,7 @@ init 的工作节奏总结：启动前期跑 sysinit/wait/once 三类；正常�
 
 ## 四、实验步骤
 
-以下命令都假设当前在 `rfs-busybox/` 里（`cd rfs-busybox`），`nano` 是顺手工具（Ctrl+O 保存、Ctrl+X 退出）。
+以下命令都假设当前在 `rfs-busybox/` 里（`cd rfs-busybox`），`nano` 是顺手工具：**Ctrl+O** 回车保存（这台 Ubuntu 的 nano 是 4.8，底栏就是 `^O 写入`；新版 nano 的 `Ctrl+S` 未默认绑定，按了可能没反应——以 `^O 写入` 为准）、**Ctrl+X** 退出——完整键位卡见实验二十步骤 1，本系列通用。本篇四处文件都是新建，不存在定位问题，nano 直接敲内容即可。
 
 ### 步骤 1：写 etc/inittab（Slide 34）
 
@@ -81,22 +81,27 @@ mkdir -p etc/init.d
 nano etc/inittab
 ```
 
-内容照 busybox 自带样例（`<busybox源码>/examples/inittab`）精简为六条：
+内容照课件 Slide 34 逐行照抄（六条生效行 + 穿插的六行注释，注释行也照抄，复制出来与课件截图一模一样）：
 
 ```
 # /etc/inittab
+#this is run first except when booting in single-user mode.
 ::sysinit:/etc/init.d/rcS
+# /bin/sh invocations on selected ttys
+# start an "askfirst" shell on the console (whatever that may be)
 ::askfirst:-/bin/sh
+# stuff to do when restarting the init process
 ::restart:/sbin/init
+# stuff to do before rebooting
 ::ctrlaltdel:/sbin/reboot
 ::shutdown:/bin/umount -a -r
 ::shutdown:/sbin/swapoff -a
 ```
 
 ![inittab内容](./27_实验二十六_etc与dev目录构建.assets/01_inittab内容.png)
-> 图：课件 Slide 34——创建的 `/etc/inittab` 内容：`::sysinit:/etc/init.d/rcS`、`::askfirst:-/bin/sh`、`::restart:/sbin/init`、`::ctrlaltdel:/sbin/reboot`、`::shutdown:/bin/umount -a -r`、`::shutdown:/sbin/swapoff -a`（其余为注释行）。
+> 图：课件 Slide 34——创建的 `/etc/inittab` 内容（共 12 行）：6 条生效行 `::sysinit:/etc/init.d/rcS`、`::askfirst:-/bin/sh`、`::restart:/sbin/init`、`::ctrlaltdel:/sbin/reboot`、`::shutdown:/bin/umount -a -r`、`::shutdown:/sbin/swapoff -a`，穿插 6 行 `#` 注释——与上面代码块逐行一致。
 
-逐条读：**第一行是灵魂**——系统起来后 init 等着执行 `/etc/init.d/rcS`（我们的启动脚本，步骤 2）；第二条起一个交互 shell，`-` 表示交互（每次都要回车确认，即那句 "Please press Enter"）；后面四条是重启/关机时的收尾动作。对照第一节的 action 表，六条各就各位。
+逐条读生效行（`#` 开头的都是注释，给读者看的，init 不执行）：**第一条是灵魂**——系统起来后 init 等着执行 `/etc/init.d/rcS`（我们的启动脚本，步骤 2）；第二条起一个交互 shell，`-` 表示交互（每次都要回车确认，即那句 "Please press Enter"）；后面四条是重启/关机时的收尾动作。对照第一节的 action 表，六条各就各位。
 
 ### 步骤 2：写 etc/init.d/rcS（Slide 38）
 
@@ -233,6 +238,14 @@ mkdir dev
 
 ### 步骤 6：认知预告——uevent helper 报错与内核配置（Slide 47）
 
+**本步不动手**——内核的 menuconfig 与重编都归**实验二十七步骤 1**（那边有显式的 `cd` 与完整操作）。现在人在 `rfs-busybox` 里敲 `make menuconfig` 会报：
+
+```text
+make: *** 没有规则可制作目标“menuconfig”。  停止。
+```
+
+不是坏了，是**站错了地方**——`rfs-busybox` 是根文件系统目录，没有 Makefile；`menuconfig` 是内核源码树的命令，得先回内核顶层（实验二十七步骤 1 第一条就是那个 `cd`）。
+
 课件在此预告了一个上板才会露头的报错，先把它的来龙去脉记下（实验二十七点火时对号）：
 
 ![rcS报错现场](./27_实验二十六_etc与dev目录构建.assets/11_rcS报错现场.png)
@@ -261,12 +274,14 @@ ls    # bin dev etc lib linuxrc mnt proc root sbin sys tmp usr var
 
 proc、sys、tmp、mnt 是挂载点（rcS/fstab 要往里挂东西），root 是 root 用户的家，var 放可变数据，`usr/lib` 是 profile 里 LD_LIBRARY_PATH 报过的路径（虽然暂时没有库放那里，建上不亏）。
 
-**就地验证**（整棵树对一遍）：
+**就地验证**（分两层看，各看各的）：
 
 ```bash
-find . -maxdepth 2 | sort | head -30
-# 应看到 bin/linuxrc/dev/etc/init.d/rcS/inittab/fstab/profile/lib(一排 .so)/proc/mnt/tmp/sys/root/usr/bin/sbin/lib
+ls                    # bin dev etc lib linuxrc mnt proc root sbin sys tmp usr var 十三样
+find etc -type f | sort   # etc/fstab  etc/init.d/rcS  etc/inittab  etc/profile 恰四个
 ```
+
+> **别用 `find . -maxdepth 2 | sort | head -30` 看整棵树**（最初稿就写的它，实测翻车）：`bin` 里有近百个符号连接，排序后全挤在 `./bin/...` 段，`head -30` 里只有 `bin`，`etc` 排在后面根本露不了面——顶层结构交给 `ls`，`etc` 里有什么交给 `find etc`，各看各的才看得全。
 
 ## 五、注意事项
 
@@ -300,13 +315,13 @@ find . -maxdepth 2 | sort | head -30
 
 ## 七、实验完成标志
 
-- `etc/inittab` 六条写好，`::sysinit:/etc/init.d/rcS` 在第一有效行（步骤 1）
-- `etc/init.d/rcS` 十一行写好、`chmod +x` 落实、权限位可见（步骤 2）
-- `etc/fstab` 一行 tmpfs /tmp、六字段齐（步骤 3）
-- `etc/profile` 写好，PS1 与 LD_LIBRARY_PATH 设上（步骤 4）
-- `dev` 空目录与 mdev 七步对上 mdev.txt 文档（步骤 5）
+- `etc/inittab` 六条写好，`::sysinit:/etc/init.d/rcS` 在第一有效行（步骤 1 实测）
+- `etc/init.d/rcS` 十一行写好、`chmod +x` 落实、权限位可见（步骤 2 实测：`ls -l` 见 `-rwxrwxr-x`，属主执行位在）
+- `etc/fstab` 一行 tmpfs /tmp、六字段齐（步骤 3 实测）
+- `etc/profile` 写好，PS1 与 LD_LIBRARY_PATH 设上（步骤 4 实测）
+- `dev` 空目录与 mdev 七步对上 mdev.txt 文档；内核 SYSFS/TMPFS 均 =y 已 grep 确认（步骤 5 实测）
 - uevent helper 报错的成因与修法记下（内核勾 `Support for uevent helper` + 重编，实验二十七落实）（步骤 6）
-- `proc mnt tmp sys root var usr/lib` 全建，`find` 一屏看到整棵树（步骤 7）
+- `proc mnt tmp sys root var usr/lib` 全建，顶层 `ls` 十三样、`find etc` 四文件（步骤 7 实测）
 
 ## 八、下一步：NFS 挂载根文件系统
 

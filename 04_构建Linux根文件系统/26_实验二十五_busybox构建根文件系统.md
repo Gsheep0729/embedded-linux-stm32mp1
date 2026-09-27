@@ -65,18 +65,40 @@ tar xf busybox-1.32.0.tar.bz2      # 解出 busybox-1.32.0/
 cd busybox-1.32.0
 ```
 
-打开**顶层 Makefile**，找到第 164 行附近的 `CROSS_COMPILE ?=`（可用 `grep -n "CROSS_COMPILE ?=" Makefile` 定位），把它改成：
+```bash
+grep -n "CROSS_COMPILE ?=" Makefile      # 定位到第 164 行附近
+```
+
+用 **nano** 打开 Makefile：
+
+```bash
+nano Makefile
+```
+
+按 **Ctrl+W**（Where Is，搜索；`^` 就是 Ctrl 键，对应底栏的 `^W Where Is`），在搜索框输入下面这串后**回车**——光标直落目标行（第 164 行附近）：
+
+```text
+CROSS_COMPILE ?=
+```
+
+若跳到的不是这行（撞上注释或别的写法），**再按回车跳下一处**；按行号跳也行：**Ctrl+_** 输入 `164` 回车。在行尾 `=` 后面补上编译器前缀，改成：
 
 ```makefile
 CROSS_COMPILE ?= arm-none-linux-gnueabihf-
 ```
 
-![Makefile加CROSS_COMPILE](./26_实验二十五_busybox构建根文件系统.assets/01_Makefile加CROSS_COMPILE.png)
-> 图：课件 Slide 19——busybox 顶层 Makefile 修改截图（第 155~164 行）：在第 164 行添加 `CROSS_COMPILE ?= arm-none-linux-gnueabihf-`（红框标出），上方注释说明 CROSS_COMPILE 用于指定编译所用可执行文件的前缀。
+改完 **Ctrl+O** 回车保存（这台 Ubuntu 的 nano 是 4.8，底栏就是 `^O 写入`；新版 nano 的 `Ctrl+S` 未默认绑定，按了可能没反应——以 `^O 写入` 为准）、**Ctrl+X** 退出。
+
+![实测nano改Makefile](./26_实验二十五_busybox构建根文件系统.assets/01_实测Makefile加CROSS_COMPILE.png)
+> 图：实测（顶替课件 Slide 19）——nano 里改好的样子：第 164 行补上 `CROSS_COMPILE ?= arm-none-linux-gnueabihf-`（绿框），上方整片都是行首带 `#` 的注释带，认准**不带 `#`** 的这行就对了；底部是这台 Ubuntu 的中文底栏，`^O 写入`/`^X 离开`/`^W 搜索` 与上面键位卡一一对应。
 
 与前缀写法的老规矩一致：前缀**以冒号前的 `arm-none-linux-gnueabihf-` 为准**，`gcc` 等后缀不用写。这和实验二十给内核顶层 Makefile 加的那两行是同一件事的小型版。
 
-**就地验证**：`grep -n "^CROSS_COMPILE ?= arm-none" Makefile` 应打出刚改的那行。
+**就地验证**：
+
+```bash
+grep -n "^CROSS_COMPILE ?= arm-none" Makefile   # 应打出刚改的那行
+```
 
 ### 步骤 2：menuconfig 四处配置（Slide 20~25）
 
@@ -85,7 +107,13 @@ make menuconfig
 ```
 
 ![menuconfig主界面](./26_实验二十五_busybox构建根文件系统.assets/02_menuconfig主界面.png)
-> 图：课件 Slide 20——busybox 配置主界面（Busybox v1.32.0）：Settings、Applets、Archival Utilities、Coreutils、Console Utilities、Debian Utilities、klibc-utils、Editors、Finding Utilities、Init Utilities 等菜单。操作键与内核 menuconfig 同款（方向键/Enter/Esc Esc/`/` 搜索）。
+> 图：课件 Slide 20——busybox 配置主界面（Busybox v1.32.0）：Settings、Applets、Archival Utilities、Coreutils、Console Utilities、Debian Utilities、klibc-utils、Editors、Finding Utilities、Init Utilities 等菜单。操作键与内核 menuconfig 同款。
+
+menuconfig 三招操作卡（与实验二十一那一套同款，busybox 全是 `[ ]`/`[*]` 两态项，没有 `<M>`）：
+
+> ① **进子菜单**：用**方向键**把光标移到 `--->` 结尾的行上，按**回车**进入；按 **Esc** 返回上一层。
+> ② **选中 / 取消选中**：光标移到选项行，按**空格键**在 `[*]`（选中）和 `[ ]`（取消选中）之间来回切；也可以按 **Y** 直接选中、**N** 直接取消。本篇①②两处要保持 `[ ]`——万一它已经是 `[*]`，光标停在那行按**空格**（或 **N**）取消即可。
+> ③ **退出并保存**：连按两次 **Esc**（或选 `<Exit>`）逐层退出；退出最外层时会问 `Do you wish to save your new configuration?`——用方向键选 **Yes** 回车。**不保存 = 白改**，这是 menuconfig 头号坑。
 
 四处配置，每一处都有明确的"为什么"：
 
@@ -149,13 +177,25 @@ make -j4
 make install CONFIG_PREFIX=../rfs-busybox
 ```
 
-`CONFIG_PREFIX` 指定安装目录（课件用 `../busybox_install`，我们直接叫它未来根文件系统的名字 `rfs-busybox`）；不带它则默认装到源码目录下 `_install/`。安装完验证：
+`CONFIG_PREFIX` 指定安装目录（课件用 `../busybox_install`，我们直接叫它未来根文件系统的名字 `rfs-busybox`）；不带它则默认装到源码目录下 `_install/`。安装收尾会打一个三行横幅：
+
+```text
+--------------------------------------------------
+You will probably need to make your busybox binary
+setuid root to ensure all configured applets will
+work properly.
+--------------------------------------------------
+```
+
+**这不是报错**，是 busybox 每次安装完都打的固定提醒：个别 applet（`login`、`su`、`passwd` 这类）要设 setuid 权限位（普通用户执行时临时借属主身份）才发挥全功能。我们的根文件系统**全程以 root 运行**（实验二十七板上提示符就是 `[root@fsmp1a: /]#`），用不到这套机制——照课件惯例不理会即可。安装完验证：
 
 ```bash
 ls ../rfs-busybox            # 应有 bin  linuxrc  sbin  usr 四样
 ls ../rfs-busybox/bin | head # 一排命令名
 ls -l ../rfs-busybox/bin/ls  # lrwxrwxrwx ... ls -> busybox（符号连接）
 ```
+
+`bin | head` 打出的清单与上面课件截图**不完全一致属正常**——applet 集合由 `.config` 决定，默认配置与课件作者当年自己配过的那份略有出入。判据认结构不认清单：四样齐全、除 `bin/busybox` 本体外全是符号连接；第 7 章要用的模块工具可用 `ls ../rfs-busybox/sbin | grep -E "insmod|modprobe|depmod"` 顺手确认在列。
 
 ![安装目录总览](./26_实验二十五_busybox构建根文件系统.assets/12_安装目录总览.png)
 > 图：课件 Slide 28——安装目录总览：`bin`、`sbin`、`usr` 三个目录加一个 `linuxrc` 文件。
@@ -181,16 +221,16 @@ find -name "ld-linux*.so*"
 # 应输出 ./arm-none-linux-gnueabihf/libc/lib/ld-linux-armhf.so.3
 ```
 
-![找加载器](./26_实验二十五_busybox构建根文件系统.assets/16_找加载器.png)
-> 图：课件 Slide 30——在编译器安装目录下 `find -name "ld-linux*.so*"`，输出 `./arm-none-linux-gnueabihf/libc/lib/ld-linux-armhf.so.3`——加载器找到了，它所在的 `arm-none-linux-gnueabihf/libc/lib` 就是 glibc 库目录。
+![实测find找加载器](./26_实验二十五_busybox构建根文件系统.assets/16_实测找加载器.png)
+> 图：实测（顶替课件 Slide 30）——`find -name "ld-linux*.so*"` 打出 `./arm-none-linux-gnueabihf/libc/lib/ld-linux-armhf.so.3`，加载器找到，它所在的 `libc/lib` 就是 glibc 库目录。
 
 ```bash
 ls arm-none-linux-gnueabihf/libc/lib/libc.so*
 # 应输出 arm-none-linux-gnueabihf/libc/lib/libc.so.6 ——glibc 在此确认
 ```
 
-![确认glibc](./26_实验二十五_busybox构建根文件系统.assets/17_确认glibc.png)
-> 图：课件 Slide 30——`ls .../libc/lib/libc.so*` 输出 `libc.so.6`，确认该目录就是 glibc 库所在目录。
+![实测ls确认glibc](./26_实验二十五_busybox构建根文件系统.assets/17_实测确认glibc.png)
+> 图：实测（顶替课件 Slide 30）——`ls .../libc/lib/libc.so*` 打出 `libc.so.6`，glibc 就在此目录。
 
 这个目录里的东西不全是运行时需要的，按后缀分七类——**我们只要前两类**：
 
@@ -204,7 +244,7 @@ ls arm-none-linux-gnueabihf/libc/lib/libc.so*
 | ⑥ gconv 目录 | 字符集动态库 | 不要（按需才拷） |
 | ⑦ ldscripts 目录 | 连接脚本 | 不要——编译时用 |
 
-好在 ①② 的后缀都是 `*.so*`，一条 `cp` 通吃（`-d` 表示**连符号连接一起原样拷**——libc 目录里 `libc.so.6` 是指向 `libc-2.30.so` 的连接，不加 `-d` 会把整个库实体重复拷一遍）。**注意此刻人还在编译器目录里**——`..` 指不到共享目录那边，所以复制与验证的目标都用 `<共享目录>` 前缀写全：
+好在 ①② 的后缀都是 `*.so*`，一条 `cp` 通吃（`-d` 表示**连符号连接一起原样拷**——libc 目录里 `libc.so.6` 是指向 `libc-2.30.so` 的连接，不加 `-d` 会把整个库实体重复拷一遍）。**注意此刻人还在编译器目录里**——`..` 指不到共享目录那边，所以复制与验证的目标都用 `<共享目录>` 前缀写全。**`<共享目录>` 是占位符，敲的时候要换成你的实际路径**（占位符规矩见实验二十步骤 3；示例机器是 `~/Desktop/LINUX-gy/Test2`）——原样照抄尖括号，bash 会把 `<` 当成输入重定向，报 `bash: 共享目录: 没有那个文件或目录`：
 
 ```bash
 cp arm-none-linux-gnueabihf/libc/lib/*.so* <共享目录>/rfs-busybox/lib/ -d
@@ -212,14 +252,18 @@ cp arm-none-linux-gnueabihf/libc/lib/*.so* <共享目录>/rfs-busybox/lib/ -d
 ls <共享目录>/rfs-busybox/lib | head     # ld-linux-armhf.so.3、libc.so.6、libm.so.6... 在列
 ```
 
+![实测拷库进lib](./26_实验二十五_busybox构建根文件系统.assets/18_实测拷库.png)
+> 图：实测——`mkdir -p` 建 lib、`cp -d` 拷库、`ls | head` 复扫：`ld-2.30.so`（实体）与 `ld-linux-armhf.so.3`（指向它的连接）**俱在** = `-d` 生效、连接没被展开；`libc.so.6` 在列。
+
 **验一下拷对了没有**——用 readelf 看 busybox 声明依赖哪些库，与拷进来的对账（同样写全 `<共享目录>` 前缀，别用 `../`）：
 
 ```bash
 arm-none-linux-gnueabihf-readelf <共享目录>/rfs-busybox/bin/busybox -a | grep "Shared"
+# 应打出三条 NEEDED：libm.so.6、libresolv.so.2、libc.so.6
 ```
 
-![readelf查依赖](./26_实验二十五_busybox构建根文件系统.assets/18_readelf查依赖.png)
-> 图：课件 Slide 33——`arm-none-linux-gnueabihf-readelf bin/busybox -a | grep "Shared"` 输出三条 NEEDED：`libm.so.6`、`libresolv.so.2`、`libc.so.6`（**结果不含加载器**——加载器是内核按 bootargs/约定调的，程序自己不声明）。三条都能在 `rfs-busybox/lib` 里找到对应文件 = 拷库完成。
+![实测readelf对账](./26_实验二十五_busybox构建根文件系统.assets/19_实测readelf对账.png)
+> 图：实测（顶替课件 Slide 33）——readelf 打出恰三条 NEEDED：`libm.so.6`、`libresolv.so.2`、`libc.so.6`（**结果不含加载器**——加载器是内核按 bootargs/约定调的，程序自己不声明）；三条都能在上一张图的 lib 清单里找到对应文件 = 拷库完成、对上账。
 
 这一步还留了一手通用的：**以后移植任何第三方程序（第 7 章起会很多），跑不起来第一件事就是用它查依赖**，缺哪个库从编译器里照方抓药。
 
@@ -256,11 +300,11 @@ arm-none-linux-gnueabihf-readelf <共享目录>/rfs-busybox/bin/busybox -a | gre
 
 ## 七、实验完成标志
 
-- busybox-1.32.0 解压完成，顶层 Makefile 的 `CROSS_COMPILE` 已指向 `arm-none-linux-gnueabihf-`（步骤 1）
-- menuconfig 四处配置完成：静态未勾、Simplified 未勾、depmod 与 mdev（含子项）已勾，`.config` grep 复核通过（步骤 2）
-- `make` 编译成功，收尾打出 `Final link with: m resolv`（步骤 3）
-- `make install CONFIG_PREFIX=../rfs-busybox` 产物齐全：`bin linuxrc sbin usr`，除 busybox 本体外均为符号连接（步骤 3）
-- glibc 库定位到 `.../arm-none-linux-gnueabihf/libc/lib` 并按 `*.so*` + `-d` 拷入 `rfs-busybox/lib`；readelf 三条 NEEDED（libm/libresolv/libc）与 lib 内容对上账（步骤 4）
+- busybox-1.32.0 解压完成，顶层 Makefile 的 `CROSS_COMPILE` 已指向 `arm-none-linux-gnueabihf-`（步骤 1 实测）
+- menuconfig 四处配置完成：静态未勾（readelf 打出三条 NEEDED = 动态编译的反证）、Simplified 未勾、depmod 与 mdev 已勾——`sbin` 里 `depmod`/`insmod`/`modprobe`/`mdev` 实测在列（步骤 2 实测）
+- `make` 编译成功，收尾打出 `Final link with: m resolv`（步骤 3 实测）
+- `make install CONFIG_PREFIX=../rfs-busybox` 产物齐全：`bin linuxrc sbin usr`，除 busybox 本体外均为符号连接（步骤 3 实测）
+- glibc 库定位到 `.../arm-none-linux-gnueabihf/libc/lib` 并按 `*.so*` + `-d` 拷入 `rfs-busybox/lib`；readelf 三条 NEEDED（libm/libresolv/libc）与 lib 内容对上账（步骤 4 实测）
 
 ## 八、下一步：构建 etc 与 dev 目录
 
