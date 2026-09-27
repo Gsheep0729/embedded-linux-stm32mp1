@@ -20,5 +20,5 @@ en.SDK-*/
 *.tar.gz
 *.rar
 *.mp4
-!*runbootcmd点火*_metool.mp4
+!*点火*_metool.mp4
 .zcode/

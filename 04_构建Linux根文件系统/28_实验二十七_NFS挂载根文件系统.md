@@ -107,8 +107,8 @@ sudo nano /etc/exports
 
 （nano 键位：改完 **Ctrl+O** 回车保存、**Ctrl+X** 退出——完整键位卡见实验二十步骤 1，本系列通用。）
 
-![exports配置](./28_实验二十七_NFS挂载根文件系统.assets/01_exports配置.png)
-> 图：课件 Slide 50——`/etc/exports` 文件截图：前面是注释掉的示例，末行新添加 `/home/cnu/nfsboot *(rw,sync,no_root_squash,no_subtree_check)`（红框）。
+![实测exports配置](./28_实验二十七_NFS挂载根文件系统.assets/01_实测exports配置.png)
+> 图：实测（顶替课件 Slide 50）——nano 4.8 里改好的 `/etc/exports`：原有内容全是注释掉的示例，末行新增 `/home/cnu/nfsboot  *(rw,sync,no_root_squash,no_subtree_check)`（绿框）。
 
 五个参数逐个懂（课件 Slide 51）：
 
@@ -121,14 +121,22 @@ sudo nano /etc/exports
 | `no_root_squash` | 远程 root 在此目录**保有 root 权限**——默认的 root_squash 会把远程 root 压成普通用户，根文件系统就改不动了；课件原话"极不安全，通常只用于挂载根文件系统" |
 | `no_subtree_check` | 不检查父目录权限（省事） |
 
-**使能 NFS v2**——开发板内核的 NFS 客户端默认按 v2 协商（课件注明），Ubuntu 的服务端默认可能不开 v2，要在 `/etc/default/nfs-kernel-server` 末尾加一行：
+**使能 NFS v2**——开发板内核的 NFS 客户端默认按 v2 协商（课件注明），Ubuntu 的服务端默认可能不开 v2。这个文件是 root 的，要用 `sudo` 打开：
+
+```bash
+sudo nano /etc/default/nfs-kernel-server
+```
+
+**Ctrl+End** 直接跳到文件末尾（或用方向键滚到底），另起一行加上：
 
 ```
 RPCNFSDOPTS="--nfs-version 2,3,4 --debug --syslog"
 ```
 
-![nfs版本配置](./28_实验二十七_NFS挂载根文件系统.assets/02_nfs版本配置.png)
-> 图：课件 Slide 52——`/etc/default/nfs-kernel-server` 内容截图：原有 RPCNFSDCOUNT=8 等行，末行添加的 `RPCNFSDOPTS="--nfs-version 2,3,4 --debug --syslog"` 红色下划线标出。
+（改完 **Ctrl+O** 回车保存、**Ctrl+X** 退出——完整键位卡见实验二十步骤 1，本系列通用。不带 `sudo` 打开的话 nano 是只读的，保存时会报 `[ Error writing /etc/default/nfs-kernel-server: Permission denied ]`。）
+
+![实测NFS版本配置](./28_实验二十七_NFS挂载根文件系统.assets/02_实测NFS版本配置.png)
+> 图：实测（顶替课件 Slide 52）——`/etc/default/nfs-kernel-server` 末行新增 `RPCNFSDOPTS="--nfs-version 2,3,4 --debug --syslog"`（绿框）；上面的 `RPCNFSDCOUNT=8`、`RPCMOUNTDOPTS="--manage-gids"` 等行是 Ubuntu 自带默认，不用动。
 
 **重启服务并本机验证**：
 
@@ -139,8 +147,8 @@ ls /mnt           # bin dev etc lib linuxrc mnt proc root sbin sys tmp usr var
 sudo umount /mnt  # 看完卸载，别占着
 ```
 
-![本机挂载验证](./28_实验二十七_NFS挂载根文件系统.assets/03_本机挂载验证.png)
-> 图：课件 Slide 53——`sudo mount localhost:/home/cnu/nfsboot/rfs /mnt -t nfs` 后 `ls /mnt` 打出 bin、dev、etc、lib、linuxrc、mnt、proc、root、sbin、sys、tmp、usr、var——服务器本地挂载成功 = NFS 服务工作正常，才轮到板子上。
+![实测本机挂载验证](./28_实验二十七_NFS挂载根文件系统.assets/03_实测本机挂载验证.png)
+> 图：实测（顶替课件 Slide 53）——`nfs-kernel-server.service` 重启成功 + `sudo mount localhost:/home/cnu/nfsboot/rfs /mnt -t nfs` 后 `ls /mnt` 打出 13 样（绿框：`linuxrc` 与 `mnt`）+ 看完 `sudo umount /mnt` 卸载——服务器本地自测通过，NFS 服务工作正常。
 
 **本机这一挂是 NFS 版的"127.0.0.1 自测"**（实验十三 TFTP 的同款思路）：服务器端问题在本机就暴露，别把服务器配置错误带到板子上排查。
 
@@ -153,6 +161,9 @@ STM32MP> print ipaddr netmask serverip ethaddr
 ```
 
 预期：`ipaddr=192.168.0.8`、`netmask=255.255.255.0`、`serverip=192.168.0.100`。哪条不对就 `setenv` 补上 + `saveenv`（实验九/十三的流程）。顺手 `ping 192.168.0.100` 应 `is alive`。
+
+![实测板子网络复核](./28_实验二十七_NFS挂载根文件系统.assets/04_实测板子网络复核.png)
+> 图：实测——`print ipaddr netmask serverip ethaddr` 四件套（`ipaddr=192.168.0.8`、`netmask=255.255.255.0`、`serverip=192.168.0.100`、`ethaddr` 与实验九设置一致）+ `ping 192.168.0.100` → **`host 192.168.0.100 is alive`**（绿框）——网络复核全过。
 
 ### 步骤 4：bootargs 换成 NFS 根（Slide 54~56）
 
@@ -193,9 +204,12 @@ STM32MP> tftp c4000000 stm32mp157a-fsmp1a.dtb
 STM32MP> bootm c2000000 - c4000000
 ```
 
+<video src="./28_实验二十七_NFS挂载根文件系统.assets/点火_metool.mp4" controls></video>
+> 视频：实测点火全程（压缩版 5.2 MB 入库随文档走；原版 11.5 MB 本地留档不入库）——终点即第 6 章终极验收：`Please press Enter to activate this console.` 回车后 **`[root@fsmp1a: /]#`** 提示符出现。
+
 预期日志的看点（自上而下）：
 
-1. `Image Name: Linux-5.4.31`——干净版本串（.scmversion 生效）；`uname -a` 一会儿会看到编译者是我们；
+1. `Image Name: Linux-5.4.31`——干净版本串（.scmversion 生效）；编译者要看 `/proc/version`（`uname -a` 里没有这个信息，见步骤 5 末尾的实测说明）；
 2. 驱动初始化段：网卡 `stmmac 5800a000.ethernet` + MAE0621A 枚举——**NFS 挂根先过网络这一关**；eMMC 照常在列；
 3. `IP-Config: Complete:` 一行——内核按 `ip=` 设好了网络（`device=eth0, addr=192.168.0.8, ... server=192.168.0.100`）；
 4. `VFS: Mounted root (nfs filesystem) readonly on device 0:12.` 一类——**根挂上了**（NFS 根默认先只读挂，rw 由 bootargs 的 rw 请求重挂/生效，以实测日志为准）；
@@ -206,13 +220,23 @@ STM32MP> bootm c2000000 - c4000000
 进去后逐项验收：
 
 ```
-ls /                        # bin dev etc lib linuxrc mnt proc root sbin sys tmp usr var
-ls /bin | head              # 全是 busybox 的命令
-mount                       # /dev (tmpfs)、/dev/pts、/proc、/sys、/tmp 各行在列
-ls /dev | head              # ttySTM0、console、mmcblk2p1~p5 等设备文件（mdev -s 的成果）
+ls /                        # bin dev etc lib linuxrc mnt proc root sbin sys tmp usr var 13 样
+ls /bin | head              # 一排 busybox 命令
+mount                       # 头行 192.168.0.100:/home/cnu/nfsboot/rfs on / type nfs (rw,…,vers=2…)
+                            # + devtmpfs /dev、tmpfs /tmp、tmpfs /dev、devpts、proc、sysfs 各行
+ls /dev | head              # console、gpiochip0~2 等一排设备文件（mmcblk2* 排序靠后，head 截不到别慌）
 cat /proc/cpuinfo | grep -c processor    # 2（双核）
-uname -a                    # Linux fsmp1a 5.4.31 ... #1 SMP PREEMPT <今天日期> ... (cnu@cnu-virtual-machine)
+uname -a                    # Linux 192.168.0.8 5.4.31 #4 SMP PREEMPT <当天日期时间> armv7l GNU/Linux
+cat /proc/version           # Linux version 5.4.31 (cnu@cnu-virtual-machine)…——编译者证据在这里
 ```
+
+![实测进系统验收](./28_实验二十七_NFS挂载根文件系统.assets/05_实测进系统验收.png)
+> 图：实测——六项验收一屏全收：`ls /` 13 样齐；`ls /bin | head` 全是 busybox 命令（红框）；**`mount` 头行 `192.168.0.100:/home/cnu/nfsboot/rfs on / type nfs (rw,…,vers=2…)`——NFS 根挂上、`vers=2` 说明步骤 2 的 v2 使能真谈成了**，devtmpfs/tmpfs/devpts/proc/sysfs 各行都在；`ls /dev` 一排设备文件；`grep -c processor` 打 `2`（双核，绿注）；**`uname -a` = `Linux 192.168.0.8 5.4.31 #4 SMP PREEMPT Sun Sep 27 23:11:29 CST 2026 armv7l GNU/Linux`——纯净 `5.4.31` 无哈希无 `-dirty`，构建时间戳就是当晚（.scmversion 生效的铁证）**。开头两行 `reg11: disabling`/`reg18: disabling` 是内核收尾时关掉没在用的调节器，无害。
+
+两个与预测不同的实测事实，说清楚：
+
+- **`uname -a` 的主机名是 `192.168.0.8` 不是 `fsmp1a`**——`ip=` 七字段里 hostname 留空时，内核拿 client-ip 当主机名；`[root@fsmp1a: /]#` 里的 `fsmp1a` 来自 `/etc/profile` 的 `export HOSTNAME=fsmp1a`（PS1 用的是它）。两处各管各的，不矛盾。
+- **编译者不在 `uname -a` 里**——`uname -a` 只有版本号和构建时间戳；`(cnu@cnu-virtual-machine)` 要 `cat /proc/version` 才看得到。
 
 **第 6 章终极验收达成：U-Boot、内核、设备树、根文件系统——四件全部是自己的。** 玩完 `reboot` 回 U-Boot（NFS 根随便重启，不怕写坏）。
 
@@ -256,11 +280,12 @@ uname -a                    # Linux fsmp1a 5.4.31 ... #1 SMP PREEMPT <今天日�
 
 ## 七、实验完成标志
 
-- 内核重编完成：`CONFIG_UEVENT_HELPER=y`、`.scmversion` 就位、版本串回归纯净 `5.4.31`，带哈希的 uImage 已存档（步骤 1）
-- NFS 服务器配置完成：exports 五参数在列、v2 使能、服务重启后**本机挂载验证通过**（步骤 2）
-- `rfs-busybox` 已搬进 `/home/cnu/nfsboot/rfs`，13 个条目齐全（步骤 2）
-- `bootargs` 已切换为 NFS 根整串并 saveenv，`client-ip` 为板子的 `.8`（步骤 4）
-- **点火进入自己的根文件系统：`[root@fsmp1a: /]#` 提示符出现，`mount` 显示 tmpfs/devpts/proc/sys/tmp 各挂载，`ls /dev` 可见 mdev 生成的设备文件，`uname -a` 编译者为我们自己**（步骤 5——第 6 章终极验收）
+- 内核重编完成：`CONFIG_UEVENT_HELPER=y` 实测在 `.config`、`.scmversion` 就位、`uname -a` 显示纯净 `5.4.31`（`#4` 构建、当晚时间戳），带哈希的 uImage 已存档 `/tmp/uImage-with-hash.bak`（步骤 1 实测）
+- NFS 服务器配置完成：exports 五参数在列、v2 使能、服务重启后**本机挂载验证通过**（步骤 2 实测，图 01~03）
+- `rfs-busybox` 已搬进 `/home/cnu/nfsboot/rfs`，13 个条目齐全（步骤 2 实测——图 03 本机挂载 `ls /mnt` 可见）
+- 板子网络复核：`print` 四件套 + `ping` is alive（步骤 3 实测，图 04）
+- `bootargs` 已切换为 NFS 根整串并 saveenv，`client-ip` 为板子的 `.8`（步骤 4 实测——点火进入 NFS 根即整串生效的反证）
+- **点火进入自己的根文件系统：`Please press Enter to activate this console.` 回车后 `[root@fsmp1a: /]#` 提示符出现（点火视频入档）；`mount` 头行 `192.168.0.100:/home/cnu/nfsboot/rfs on / type nfs (rw,…,vers=2…)`、`ls /` 13 样、`ls /dev` 设备文件、双核 `2`、`uname -a` 纯净 `5.4.31`——验收一屏全过（步骤 5 实测，图 05——第 6 章终极验收）**
 
 ## 八、下一步：buildroot 构建根文件系统
 
