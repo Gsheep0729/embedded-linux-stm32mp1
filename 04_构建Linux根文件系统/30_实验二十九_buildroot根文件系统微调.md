@@ -83,7 +83,7 @@ chmod a-s busybox
 sudo chown -R root:root /home/cnu/nfsboot/rfs-buildroot    # 顺手把整棵树属主归位
 ```
 
-板子上 `reboot`（NFS 根，重启即生效）——开头那批 Permission denied 应清零，能顺利到登录提示，输入 `root`（密码 `123456` 或留空，实验二十八配置的）进入。
+板子上 `reboot`（NFS 根，重启即生效）——开头那批 Permission denied 应清零，能顺利到登录提示，输入 `root`（密码 `123`——实验二十八**步骤 4** 设置的自定义密码，不是课件示例的 123456）进入。
 
 > **（可选）buildroot 里微调 busybox**（Slide 79）：`make busybox-menuconfig` 可直接进 busybox 配置界面（参考实验二十五的四处配置，本篇按课件说明"此处不需要修改"）；改了配置后要重跑 `make` 生成新 rootfs.tar；busybox 源码就在 `output/build/busybox-1.31.1/`。
 
@@ -200,7 +200,7 @@ buildroot 的后半场价值在软件包：`make menuconfig` → **Target packag
 3. **modules.dep 在板上 `depmod` 生成**——它扫的是"当前运行的内核版本"，所以要在板子上跑、在 `/lib/modules/<版本>/` 里落清单；Ubuntu 里跑版本对不上。
 4. **改 NFS 根里的文件不必重启 NFS**：改完板子 `reboot` 就生效；只有 Ubuntu 侧改了 exports 才需要重启 NFS 服务（实验二十七）。
 5. **profile.d 的脚本不加执行位也能被 source**（rcS 对 .sh 用 `. $i`——哦不，profile.d 是 profile 遍历 source 的，同样不查 x 位），但 init.d 的 S 脚本按课件惯例 `chmod +x` 养成习惯。
-6. **两套根并存后别改串了**：bootargs 的 nfsroot 路径决定挂哪个根——`rfs`（busybox 版，root 无密码）与 `rfs-buildroot`（root/123456）登录方式不同，分不清先 `mount` 看根上有没有 profile.d。
+6. **两套根并存后别改串了**：bootargs 的 nfsroot 路径决定挂哪个根——`rfs`（busybox 版，root 无密码）与 `rfs-buildroot`（root/`123`，密码出自实验二十八步骤 4 的自定义设置）登录方式不同，分不清先 `mount` 看根上有没有 profile.d。
 
 ## 六、验证点一览
 
@@ -208,7 +208,7 @@ buildroot 的后半场价值在软件包：`make menuconfig` → **Target packag
 |---|---|---|---|
 | bootargs 已切换 | `print bootargs` | nfsroot 指向 `rfs-buildroot` | 步骤 1 |
 | Set UID 已去 | `ls -l rfs-buildroot/bin/busybox`（Ubuntu） | 权限 `-rwxr-xr-x`（无 s）；属主 root | 步骤 2 |
-| 登录成功 | 登录提示输入 root | 进入 shell（密码 123456 或空） | 步骤 2 |
+| 登录成功 | 登录提示输入 root | 进入 shell（密码 123，实验二十八步骤 4 设置） | 步骤 2 |
 | modules 三件套 | `ls /lib/modules/5.4.31/`（板上） | 目录存在；`depmod` 后有 modules.dep | 步骤 3 |
 | 启动日志干净 | 复验启动输出 | modprobe 三连报清零 | 步骤 3 |
 | 提示符生效 | 看登录后提示符 | `[root@fsmp1a-buildroot]:/# ` | 步骤 4 |

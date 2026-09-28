@@ -75,10 +75,10 @@ make menuconfig
 ![openssh选项](./37_实验三十六_buildroot支持QT5与新系统启动.assets/03_openssh选项.png)
 > 图：课件 Slide 9——搜索结果：BR2_PACKAGE_OPENSSH [=y]、Location: -> Target packages -> Networking applications。
 
-课件红字提醒：**原来的根文件系统若没设登录密码，必须设置**（ssh 用 root 登录要密码）——System configuration 里 `[*] Enable root login with password` + Root password（我们实验二十八已配 123456，复核一眼）：
+课件红字提醒：**原来的根文件系统若没设登录密码，必须设置**（ssh 用 root 登录要密码）——System configuration 里 `[*] Enable root login with password` + Root password（实验二十八步骤 4 自定义的 123，复核一眼）：
 
 ![Systemconfiguration复核](./37_实验三十六_buildroot支持QT5与新系统启动.assets/04_Systemconfiguration复核.png)
-> 图：课件 Slide 10——System configuration 配置：hostname/banner/Init system=BusyBox//dev management=devtmpfs+mdev/Enable root login with password/Root password=123456——与实验二十八步骤 4 的配置一致，复核即可。
+> 图：课件 Slide 10——System configuration 配置：hostname/banner/Init system=BusyBox//dev management=devtmpfs+mdev/Enable root login with password/Root password=123456（课件示例）——配置项目与实验二十八步骤 4 一致，密码值是我们自定义的 123（非课件的 123456），复核即可。
 
 ### 步骤 3：使能 QT5——七项配置（Slide 11~18）
 
@@ -193,7 +193,7 @@ ssh root@192.168.0.8           # 我们的板是 .8（课件板是 .2）；密�
 3. **rootfs.tar 解包前先备份**——课件红字；tar 覆盖解包不删除旧文件，残留旧配置若引发怪象，删目录重解一份更干净。
 4. **calculator 路径里 examples 是复数目录链**：`/usr/lib/qt/examples/widgets/widgets/calculator/calculator`（widgets 出现两次不是笔误）；没编 examples 选项就没有这条路径。
 5. **openssh 的两步都要做**：/var/empty 属主 + sshd_config 去注释——只做一半 ssh 依然拒绝登录。
-6. ssh 登录的用户名/密码/校验与实验二十八的 buildroot 配置一致（root/123456）；两台"机器"间首次连接会问 host key 确认，输 yes。
+6. ssh 登录的用户名/密码/校验与实验二十八的 buildroot 配置一致（root/123——密码出自实验二十八步骤 4）；两台"机器"间首次连接会问 host key 确认，输 yes。
 
 ## 六、验证点一览
 
