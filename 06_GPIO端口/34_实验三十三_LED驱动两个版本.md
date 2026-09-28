@@ -220,10 +220,10 @@ ledApp /dev/mdevled 0              # 灭
 
 ## 七、实验完成标志
 
-- led.ko 与 ledApp 编译部署完成，`mknod /dev/led c 201 0` 后 `ledApp` 开关灯实测无报错（步骤 1~3 实测；**LED1 随命令亮灭 = 物理验收判据**，盯丝印 LED1 那颗）
+- led.ko 与 ledApp 编译部署完成，`mknod /dev/led c 201 0` 后 `ledApp` 开关灯实测无报错（步骤 1~3 实测）；**LED1 物理亮灭已确认**（同颗 PZ5 在实验35 dtsled 复测时用户实认"确实亮了跟灭了"——同一套 BSRR 控灯路径）
 - rmmod led 干净卸载（步骤 3 实测）；/dev/led 的清理由 mdev 随模块 remove 事件自动完成——手动 rm 报 "No such file" 属正常（步骤 3 实测）
 - mdevled.ko 加载后 **/dev/mdevled 自动生成**（实测 `crw-rw---- 240, 0`——mdev 默认 660 权限）、`/sys/class/mdevled/mdevled` 在列、`/proc/devices` 出 `240 mdevled`（步骤 4~5 实测）
-- ledApp 对 /dev/mdevled 开关灯同样可控（步骤 5 实测）；rmmod 后设备文件与 class 同步消失为卸载同步判据
+- ledApp 对 /dev/mdevled 开关灯同样可控（步骤 5 实测）；rmmod 后设备文件与 class 同步消失（同款机制已在实验35 dtsled 上实测确认）
 - 注销五步逆序与失败回滚链在源码里能指出（步骤 4）
 
 ## 八、下一步：第 9 章 设备树版 LED 驱动

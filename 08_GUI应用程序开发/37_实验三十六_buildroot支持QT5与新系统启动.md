@@ -19,7 +19,7 @@ QT5 在嵌入式 Linux 有四种显示后端：**eglfs**（要 OpenGL/EGL 栈）
 | 板上点火 | 出厂内核 + 出厂 dtb（eMMC bootfs 里躺着的那对，实验十五清点过）+ 本篇新 rootfs.tar |
 | 板上屏幕 | MIPI 接口 LCD（出厂 dtb 的 mipi050 配置就是给它用的） |
 
-> **开工自检（10 秒）**：buildroot 目录 `output/images/rootfs.tar` 还在（实验二十八产物）；板上能进命令行；虚拟机磁盘余量 15G+（QT 编译比上次大得多）。
+> **开工自检（10 秒）**：buildroot 目录 `output/images/rootfs.tar` 还在（实验二十八产物）；板上能进命令行；虚拟机磁盘余量 15G+（QT 编译比上次大得多——`df -h` 看一眼，不够先清）。
 
 ## 三、课件 ↔ 步骤对应表
 
@@ -47,9 +47,10 @@ QT5 在嵌入式 Linux 有四种显示后端：**eglfs**（要 OpenGL/EGL 栈）
 ### 步骤 1：busybox 加 stat、buildroot 加 gdbserver（Slide 6~8）
 
 ```bash
-cd <buildroot源码>/buildroot-2020.02.6
+cd <buildroot源码>/buildroot-2020.02.6    # <buildroot源码> = 你机器上实验二十八解压的那层，本机示例 ~/Desktop/LINUX-gy/Test2
 make busybox-menuconfig
 #   /  搜索 STAT → Coreutils 里勾上 [*] stat
+#   连按两次 Esc 退出 → 选 Yes 保存（实验二十八的操作卡；不保存 = 白勾）
 ```
 
 ![busybox_stat搜索](./37_实验三十六_buildroot支持QT5与新系统启动.assets/01_busybox_stat搜索.png)
@@ -69,7 +70,9 @@ make menuconfig
 ### 步骤 2：使能 openssh（Slide 9~10）
 
 ```bash
-# Target packages -> Networking applications -> [*] openssh
+make menuconfig
+#   /  搜索 OPENSSH → Target packages -> Networking applications 里勾上 [*] openssh
+#   退出保存（两次 Esc → Yes）
 ```
 
 ![openssh选项](./37_实验三十六_buildroot支持QT5与新系统启动.assets/03_openssh选项.png)
@@ -115,20 +118,29 @@ make menuconfig
 ![eglfs选项](./37_实验三十六_buildroot支持QT5与新系统启动.assets/11_eglfs选项.png)
 > 图：课件 Slide 18——BR2_PACKAGE_QT5BASE_EGLFS：eglfs(OpenGL) 后端选项截图，课件批注"这一选项没有验证，请自行验证"——我们走 linuxfb 路线，保持不勾。
 
+七项配完（EGLFS 保持不勾），退出保存（两次 Esc → Yes）。勾没勾全就地复核：
+
+```bash
+grep -E "BR2_PACKAGE_QT5=y|BR2_PACKAGE_OPENSSH=y|BR2_TOOLCHAIN_EXTERNAL_GDB_SERVER_COPY=y" .config    # 三行都在 = buildroot 侧勾齐了
+grep ^CONFIG_STAT= output/build/busybox-1.31.1/.config                                                # stat 勾在 busybox 自己的配置里
+```
+
 ### 步骤 4：重编 buildroot（Slide 19）
 
 ```bash
 make clean     # 必须！不清除的话有些模块不会被编译
-make           # 编译时间按小时计，耐心等待
+make           # 编译时间按小时计，耐心等待；中途断了不用怕，重新 make 会接着编（dl/ 缓存都在）
+ls -l output/images/rootfs.tar      # 就地验证：时间戳是刚刚、体积比实验二十八的 3,450,880 大数百 MB
+ls output/host/bin/qmake            # 就地验证：存在（下一篇 Qt Creator 要用）
 ```
 
-`make clean` 是课件红字级别的必须——QT 这类大模块靠增量编译不可靠。编完 `output/images/rootfs.tar` 是带 QT 的新根文件系统（外加 `output/host/` 下多出 qmake、交叉 gdb 等开发工具——下一篇 Qt Creator 全要用）。
+`make clean` 是课件红字级别的必须——QT 这类大模块靠增量编译不可靠。编完 `output/images/rootfs.tar` 是带 QT 的新根文件系统（外加 `output/host/` 下多出 qmake、交叉 gdb 等开发工具——下一篇 Qt Creator 全要用）。**这份 rootfs.tar 也是作业交付物④ `rfs-buildroot-qt` 的前身**（打包改名流程见《作业提交说明》，压轴做）。
 
 ### 步骤 5：换内核与根文件系统（Slide 20~22）
 
 **一个关键转折**：我们第 5 章自制的内核**没编显示与触摸屏驱动**（multi_v7 基线没有 DRM/MIPI 面板/触摸那一路），跑 GUI 必黑屏。课件方案：**内核与设备树换回出厂件**（出厂内核带全套显示/触摸驱动），根文件系统用我们的新货——"出厂内核 + 自制根"混搭启动。
 
-出厂文件就在板上 eMMC 的 bootfs 分区（实验十五清点过：uImage + stm32mp157a-fsmp1a-mipi050.dtb），U-Boot 里设一个启动变量：
+出厂文件就在板上 eMMC 的 bootfs 分区（实验十五清点过：uImage + stm32mp157a-fsmp1a-mipi050.dtb）。板子复位/上电，**bootdelay 窗口按 Enter 拦停进 `STM32MP>`**——bootcmd 还指 run mybootnet，不拦停它就自动进自制内核了。然后设一个启动变量：
 
 ```
 STM32MP> setenv fcsys 'ext4load mmc 1:2 c2000000 uImage; ext4load mmc 1:2 c4000000 stm32mp157a-fsmp1a-mipi050.dtb; bootm c2000000 - c4000000'
@@ -138,22 +150,31 @@ STM32MP> run fcsys
 
 与实验十七 `mybootemmc`、实验二十三替换定位法同款的 `ext4load` 三连——从 eMMC 2 号分区（U-Boot 设备 1）加载出厂内核与 dtb 点火。**以后凡是跑 GUI 的实验，`run fcsys` 一条命令进系统**（三条引号内其实是一条命令，整串加单引号；我们板 U-Boot 设备号与课件一致，mmc 1:2 原样可用——实验十四已验证）。
 
+**两个容易含糊的点**：① `fcsys` 只管"从哪加载内核和 dtb"，**根文件系统仍由 bootargs 决定**——现在 bootargs 还是实验二十九设的 NFS 指 `rfs-buildroot`，"出厂内核 + 出厂 dtb + 我们的新根"三件混搭就是这么拼出来的；② `saveenv` 之后**上电默认行为不变**（bootcmd 仍是 run mybootnet 进自制内核），要进 GUI 系统必须拦停后手动 `run fcsys`。
+
 **根文件系统替换**（课件红字：**先备份旧的**）：
 
 ```bash
 # Ubuntu：
-cp -a /home/cnu/nfsboot/rfs-buildroot /home/cnu/nfsboot/rfs-buildroot.bak    # 先备份！
-cp <buildroot源码>/output/images/rootfs.tar /home/cnu/nfsboot/rfs-buildroot/
-cd /home/cnu/nfsboot/rfs-buildroot && tar -xf rootfs.tar      # 解包覆盖旧文件
+sudo cp -a /home/cnu/nfsboot/rfs-buildroot /home/cnu/nfsboot/rfs-buildroot.bak    # 先备份！根里有 root 属主文件（/etc/shadow 等），不带 sudo 会中途失败
+sudo cp <buildroot源码>/output/images/rootfs.tar /home/cnu/nfsboot/rfs-buildroot/
+cd /home/cnu/nfsboot/rfs-buildroot && sudo tar -xf rootfs.tar    # 解包覆盖旧文件（覆盖式 = 实验二十九验证过的安全姿势，别 rm 目录）
 ```
 
 （NFS 根，解包完板上重启即生效；若你想继续用 NFS 之外的方式，rootfs.tar 也能走烧卡流程——本系列一直用 NFS，最省。）
 
 ### 步骤 6：calculator 验收（Slide 23~24）
 
+前提：**MIPI 屏已接在板上**（出厂 dtb 的 mipi050 配置就是给它用的；没接屏则本步无从验收）。根替换完后板子复位，**再次拦停进 `STM32MP>`**（同上，别让它自动跑 mybootnet——自制内核没显示驱动），`run fcsys` 点火：
+
 ```
 STM32MP> run fcsys
-# 板上进入系统后（出厂内核 + 新根文件系统）：
+```
+
+板上进入系统（出厂内核 + 新根文件系统）后，跑 QT 自带的示例：
+
+```bash
+# 板上：
 /usr/lib/qt/examples/widgets/widgets/calculator/calculator -platform linuxfb
 ```
 
@@ -190,7 +211,7 @@ ssh root@192.168.0.8           # 我们的板是 .8（课件板是 .2）；密�
 
 1. **`make clean` 不可省**：QT/openssh 等新模块在旧 output 上增量编译不可靠（课件红字）。
 2. **跑 GUI 一律 `run fcsys`（出厂内核）**：自制内核没编显示/触摸驱动，黑屏是预期行为不是故障；出厂内核 + 新根的混搭里，`uname -a` 报的是出厂内核（Apr 2020 / oe-user），别误判成自己的内核丢了。
-3. **rootfs.tar 解包前先备份**——课件红字；tar 覆盖解包不删除旧文件，残留旧配置若引发怪象，删目录重解一份更干净。
+3. **rootfs.tar 解包前先备份**——课件红字；tar 覆盖解包不删除旧文件，残留旧配置若引发怪象，删目录重解一份更干净——**但删目录的前提是板子没正挂着这个根**（实验二十九 Stale file handle 教训：先拦停再删，或干脆只做覆盖式更新）。
 4. **calculator 路径里 examples 是复数目录链**：`/usr/lib/qt/examples/widgets/widgets/calculator/calculator`（widgets 出现两次不是笔误）；没编 examples 选项就没有这条路径。
 5. **openssh 的两步都要做**：/var/empty 属主 + sshd_config 去注释——只做一半 ssh 依然拒绝登录。
 6. ssh 登录的用户名/密码/校验与实验二十八的 buildroot 配置一致（root/123——密码出自实验二十八步骤 4）；两台"机器"间首次连接会问 host key 确认，输 yes。
@@ -199,7 +220,7 @@ ssh root@192.168.0.8           # 我们的板是 .8（课件板是 .2）；密�
 
 | 验证点 | 命令 | 通过的样子 | 在哪一步敲 |
 |---|---|---|---|
-| 四模块勾选 | `grep -E "BR2_PACKAGE_QT5=y\|BR2_PACKAGE_OPENSSH=y\|BR2_TOOLCHAIN_EXTERNAL_GDB_SERVER_COPY=y" .config` | 三行都在（stat 在 busybox 自己的 .config） | 步骤 1~3 |
+| 四模块勾选 | `grep -E "BR2_PACKAGE_QT5=y\|BR2_PACKAGE_OPENSSH=y\|BR2_TOOLCHAIN_EXTERNAL_GDB_SERVER_COPY=y" .config` + `grep ^CONFIG_STAT= output/build/busybox-1.31.1/.config` | 三行 + CONFIG_STAT=y 都在 | 步骤 1~3 |
 | 重编完成 | `ls -l output/images/rootfs.tar` | 时间戳是刚刚、体积比上版大数百 MB | 步骤 4 |
 | qmake 生成 | `ls output/host/bin/qmake` | 存在（下一篇 Qt Creator 要用） | 步骤 4 |
 | 出厂内核启动 | `run fcsys` 后 `uname -a` | `...5.4.31 ... Apr 8 ... 2020 ... (oe-user@oe-host)` | 步骤 5 |

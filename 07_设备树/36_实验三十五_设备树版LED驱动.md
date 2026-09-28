@@ -77,6 +77,9 @@ nano arch/arm/boot/dts/stm32mp157a-fsmp1a.dts
 
 > 节点可挂在设备树任意位置，课件为简单挂在根节点下；`#address-cells/#size-cells` 写 <1>/<1> 后，reg 按"基址 长度"成对解析（实验三十四第三节）——6 对 = 12 个 u32，与驱动 `of_property_read_u32_array(nd, "reg", regdata, 12)` 的 12 严丝合缝。
 
+![实测dts加LED节点](./36_实验三十五_设备树版LED驱动.assets/01_实测dts加LED节点.png)
+> 图：实测——nano 里的 `stm32mp157a-fsmp1a.dts`：节点整段绿框（compatible/status/#address-cells/#size-cells/reg 六组"基址 长度"），位置在根节点内 aliases 与 chosen 之间；reg 块里的 C 风格注释由 dtc 剥掉、合法。六组地址与实验三十三 led.c 的 `#define` 逐项对应（0x50000210 = RCC_BASE 0x50000000 + 0x210 起跟到 BSRR）。
+
 重编设备树：
 
 ```bash
@@ -92,6 +95,9 @@ chmod 644 /home/cnu/tftpboot/stm32mp157a-fsmp1a.dtb
 ```bash
 grep -n -A 12 "stm32mp1-led" arch/arm/boot/dts/stm32mp157a-fsmp1a.dts
 ```
+
+![实测make_dtbs与dtb部署](./36_实验三十五_设备树版LED驱动.assets/02_实测make_dtbs与dtb部署.png)
+> 图：实测——步骤 1 下半场一屏收：`make dtbs` → `DTC arch/arm/boot/dts/stm32mp157a-fsmp1a.dtb`；`ls -l` 见 **64,050 字节**（比实验二十三的 63,890 大 160 = 新节点体量）；cp 上服务器 + chmod 644；`grep -n -A 12` 反查节点整段在 15~27 行。
 
 ### 步骤 2：换 dtb 点火（不换内核）
 
@@ -111,27 +117,46 @@ cat /proc/device-tree/stm32mp1-led/compatible
 # 输出：fsmp1a,led
 ```
 
+![实测设备树节点上板](./36_实验三十五_设备树版LED驱动.assets/03_实测设备树节点上板.png)
+> 图：实测——新 dtb 点火后板上第一手验证：`/proc/device-tree/stm32mp1-led/` 下六件齐（#address-cells / #size-cells / compatible / reg / name / status）；`cat compatible` 出 **`fsmp1a,led`**——设备树已在板上安家（`/proc/device-tree` 是内核设备树的只读视图）。
+
 ### 步骤 3：编译部署 dtsled（源码 290 行）
 
 ```bash
-# Ubuntu，04-dtsled/ 里：
-make
+# Ubuntu，04-dtsled/ 里同样先 `nano Makefile`：**Ctrl+W** 搜 `KERNELDIR`、第 1 行改成你的内核树——**每个素材子目录各一份 Makefile、各改各的**（老规矩，zip 预填的都是课件作者路径）
+make                                 # MODPOST 1 modules → LD [M] dtsled.ko
+ls *.ko                              # 就地验证：dtsled.ko 存在
 arm-none-linux-gnueabihf-gcc ledApp.c -o dtsledApp
-cp dtsled.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
-cp dtsledApp /home/cnu/nfsboot/rfs-buildroot/bin/
+file dtsledApp                       # 就地验证：ELF 32-bit ... ARM, EABI5
+sudo cp dtsled.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+sudo cp dtsledApp /home/cnu/nfsboot/rfs-buildroot/bin/
 ```
 
+> **sudo 规矩同实验三十一/三十三**：`lib/modules/5.4.31/` 是板上 root 建的（root:root），普通 cp 必报"权限不够"；**sudo cp 一律能写，别赌目录归属**（bin/ 恰好归了 cnu、不带 sudo 也能写——那是目录来源不同，不是规律）。
+
 > Makefile 的 obj-m 素材包里已是 `dtsled.o`；ledApp 与第 8 章同源，产物名建议叫 dtsledApp 以示区分。
+
+![实测dtsled编译与部署](./36_实验三十五_设备树版LED驱动.assets/04_实测dtsled编译与部署.png)
+> 图：实测——dtsled 编译部署一屏收：nano 改 KERNELDIR → `make` → 绿框 `LD [M] dtsled.ko`；`cp` 报"权限不够"（`lib/modules/5.4.31/` 归 root）→ sudo cp 过；dtsledApp 进 bin 未带 sudo 也成功（bin 目录归 cnu——**目录归属看来源，sudo cp 一律最稳**）。
 
 ### 步骤 4：加载 dtsled，全链验证
 
 ```bash
 # 板上：
-depmod && modprobe dtsled
-dmesg | tail -8
+depmod && modprobe dtsled            # 只打一条 taint 提示（老朋友，必现非报错）
+lsmod                                # 就地验证：dtsled 在列 = 加载成功
+ls -l /dev/dtsled                    # 自动创建的设备文件，主设备号内核分配
+dtsledApp /dev/dtsled 1              # 亮（盯丝印 LED1 那颗）
+dtsledApp /dev/dtsled 0              # 灭
+rmmod dtsled
+ls /dev/dtsled                       # No such file = mdev 随模块 remove 顺手删（实验三十三同款机制）
 ```
 
-预期日志顺序（与 dtsled.c 的执行流一一对应）：
+> **taint 那行为什么不是报错**：`[ 229.150979] dtsled: module verification failed: ...` 开头带时间戳 = **内核 printk**（跟 `toychar init!` 同款格式），不是 modprobe 的报错；它说的是"这模块没带签名，我把内核记为已弄脏"，说完**照样加载**。真正的 modprobe 报错以 `modprobe:` 开头（如 `modprobe: can't load module ...` / `not found in modules.dep`）。**判成败只看 `lsmod`**——本系列六个模块（toychar1/2/3、led、mdevled、dtsled）加载时全打这行、全加载成功。
+
+实测全中：`lsmod` 见 `dtsled 16384 0`（表头照旧 `Tainted: G`）；`/dev/dtsled` 自动生成 **`crw-rw---- 241, 0`**（主 241 = 内核现场分配，比实验三十三的 240 又变了一号——"每次加载可能不同"的现场；660 是 mdev 默认权限）；`dtsledApp` 1/0 时 **LED1 物理亮灭**（用户实认）；`rmmod` 后 `/dev/dtsled` 消失（mdev remove 联动）。
+
+**这版驱动平时也不打印**——与 led.c/mdevled.c 同款，dtsled.c 的 8 处 printk 全在失败路径上，成功时一声不吭：modprobe 后 dmesg 只有 taint 一条 = **成功的样子**。下面这张表是**失败对照表**（哪一步没过会打什么），不是成功时该看到的输出：
 
 1. `of_find_node_by_name(NULL, "stm32mp1-led")` 找到节点——没找到会打 `stm32mp1-led not found in device tree`；
 2. compatible 与 `"fsmp1a,led"` 比对通过——不匹配打 `incompatible driver`；
@@ -139,14 +164,6 @@ dmesg | tail -8
 4. reg 12 个 u32 读出 → 六次 `ioremap(regdata[2n], regdata[2n+1])`；
 5. 寄存器初始化六步（MODER 输出/推挽/高速/上拉，与实验三十三同款）→ 默认开灯（BSRR 1<<5）；
 6. alloc_chrdev_region + cdev + class + device 自动注册——**/dev/dtsled 自动出现**（LED_NAME 为 "dtsled"）。
-
-```bash
-ls -l /dev/dtsled                # 自动创建的设备文件
-dtsledApp /dev/dtsled 1          # 亮
-dtsledApp /dev/dtsled 0          # 灭
-rmmod dtsled
-dmesg | tail -3
-```
 
 **LED1 亮灭可控 + /dev/dtsled 自动生成 = 第 9 章闭环**。这颗灯此刻的"户口"是这样的：设备树描述它（stm32mp1-led 节点）→ 驱动认领它（compatible 匹配）→ 注册系统（cdev/class/device）→ mdev 落地文件（/dev/dtsled）——比实验三十三的版本多了一层"描述与实现分离"的正装。
 
@@ -167,8 +184,8 @@ dmesg | tail -3
 | 新 dtb 上板 | `tftp c4000000 ...` + bootm | Bytes transferred 与新文件一致 | 步骤 2 |
 | 节点在线 | `ls /proc/device-tree/stm32mp1-led/` | compatible/status/reg/name 四件 | 步骤 2 |
 | compatible 值 | `cat /proc/device-tree/stm32mp1-led/compatible` | `fsmp1a,led` | 步骤 2 |
-| 驱动加载 | `modprobe dtsled` + `dmesg \| tail -8` | 四步 OF 检查全过、无 not found/incompatible/disabled | 步骤 4 |
-| 设备文件自动生成 | `ls -l /dev/dtsled` | 存在，主设备号内核分配 | 步骤 4 |
+| 驱动加载 | `modprobe dtsled` + `lsmod` | dtsled 在列；dmesg 仅 taint 一条（平时不打印） | 步骤 4 |
+| 设备文件自动生成 | `ls -l /dev/dtsled` | 自动出现（实测 `crw-rw---- 241, 0`：mdev 660 权限、主号每次分配） | 步骤 4 |
 | 开关灯 | `dtsledApp /dev/dtsled 1` / `0` | LED1 亮 / 灭 | 步骤 4 |
 | 卸载干净 | `rmmod dtsled` | /dev/dtsled 消失 | 步骤 4 |
 
@@ -185,11 +202,11 @@ dmesg | tail -3
 
 ## 七、实验完成标志
 
-- 设备树根节点下已加 `stm32mp1-led` 节点（compatible/status/reg 三属性齐），`make dtbs` 重编成功、新 dtb 已上板（步骤 1~2）
-- 板上 `/proc/device-tree/stm32mp1-led/` 可见，compatible 读出 `fsmp1a,led`（步骤 2）
-- dtsled.ko 编译部署、`modprobe dtsled` 加载时 OF 四件套（找节点/匹配/查状态/读 reg）全过（步骤 3~4）
-- **`/dev/dtsled` 自动生成，dtsledApp 开关灯实测 LED1 亮灭可控**（步骤 4——第 9 章闭环）
-- rmmod 后设备文件同步消失（步骤 4）
+- 设备树根节点下已加 `stm32mp1-led` 节点（compatible/status/reg 三属性齐），`make dtbs` 重编成功（dtb 63,890 → **64,050 字节**，+160 = 新节点体量）、新 dtb 已上板（步骤 1~2 实测）
+- 板上 `/proc/device-tree/stm32mp1-led/` 六件齐，compatible 读出 `fsmp1a,led`（步骤 2 实测）
+- dtsled.ko 编译部署、`modprobe dtsled` 加载时 OF 四件套（找节点/匹配/查状态/读 reg）全过——dmesg 仅 taint 一条即成功（步骤 3~4 实测）
+- **`/dev/dtsled` 自动生成（crw-rw---- 241, 0），dtsledApp 开关灯实测 LED1 物理亮灭可控**（步骤 4 实测——第 9 章闭环）
+- rmmod 后设备文件同步消失：`ls /dev/dtsled` 报 No such file（步骤 4 实测）
 
 ## 八、下一步：第 10 章 GUI 应用程序开发
 
