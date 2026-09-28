@@ -31,7 +31,7 @@ toychar 的三个版本对应实验三十"核心三步"，每一步加一行家�
 | 根文件系统 | buildroot 版 `rfs-buildroot`（`/lib/modules/5.4.31/` 与 kmod 已就位，实验二十九） |
 | 素材 | `drivers-dev.zip`（md5 `7fa1d58d1e6f082f4f553230bde7ddcb`）——**已复制到本章目录**（`05_字符设备驱动/`）；解压后 `01-toychar/`：toychar1/2/3.c、toycharApp.c、Makefile（02-led/03-mdevled/04-dtsled 留给第 8、9 章，同一个包不重复复制） |
 
-> **开工自检（10 秒）**：`ls /home/cnu/nfsboot/rfs-buildroot/lib/modules/` 见 `5.4.31`（与 `uname -r` 同串——实验二十九的成果）；`make -C <内核树> kernel_version 2>/dev/null || head -5 <内核树>/Makefile` 能看到 5.4.31（源码树在）；驱动素材解压在位。
+> **开工自检（10 秒）**：`ls /home/cnu/nfsboot/rfs-buildroot/lib/modules/` 见 `5.4.31`（与 `uname -r` 同串——实验二十九的成果）；`make -C <内核树> kernel_version 2>/dev/null || head -5 <内核树>/Makefile` 能看到 5.4.31（源码树在）；驱动素材解压在位（步骤 1 做完即满足）。
 
 ## 三、课件 ↔ 步骤对应表
 
@@ -61,11 +61,13 @@ toychar 的三个版本对应实验三十"核心三步"，每一步加一行家�
 
 ### 步骤 1：准备素材，改 Makefile 的内核路径（Slide 19）
 
-把 `drivers-dev.zip`（在本章目录 `05_字符设备驱动/`）拷进虚拟机共享目录解压，进 `01-toychar/`：
+把 `drivers-dev.zip`（在本章目录 `05_字符设备驱动/`）拷进虚拟机共享目录，在 Ubuntu 侧解压、进 `01-toychar/`（`<共享目录>` = 你自己虚拟机里挂的共享文件夹，本机示例 `~/Desktop/LINUX-gy/Test2`，下同）：
 
 ```bash
-cd <共享目录>/drivers-dev/01-toychar    # 按你的共享目录来
-ls    # Makefile  toychar1.c  toychar2.c  toychar3.c  toycharApp.c
+cd <共享目录>
+unzip drivers-dev.zip          # 解压出 drivers-dev/（02-led/03-mdevled/04-dtsled 一并解出，第 8、9 章才用）
+cd drivers-dev/01-toychar
+ls                             # Makefile  toychar1.c  toychar2.c  toychar3.c  toycharApp.c
 ```
 
 打开 Makefile（保存退出键同实验二十步骤 1 的 nano 卡）：
@@ -94,7 +96,21 @@ clean:
 ![外部模块Makefile](./32_实验三十一_toychar虚拟字符设备驱动.assets/01_外部模块Makefile.png)
 > 图：课件 Slide 19——外部模块 Makefile 模板（课件截图为单行 `obj-m := toychar1.o` 的版本；**素材包里的 Makefile 是一次编三个模块的加强版**：`obj-m := toychar1.o` 加两行 `obj-m += toychar2.o`/`+= toychar3.o`）。第 8 行 `$(MAKE) -C $(KERNELDIR) M=$(CURRENT_PATH) modules` 是灵魂：`-C` 切到内核树借用整套编译体系，`M=` 告诉内核"要编的模块在这个目录"——**驱动源码不必放进内核源码树**（外部模块，与实验二十二在内核树里加 obj-$(CONFIG_xxx) 的树内方式相对）。
 
-toychar1.c 的骨架读一遍（50 行，全套的种子）：
+改完保存退出（**Ctrl+O** 回车 / **Ctrl+X**），**先就地验证 KERNELDIR 写的路径真实存在**——命令与 KERNELDIR 同路径、末尾接 `/Makefile`：
+
+```bash
+ls /home/cnu/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31/Makefile
+```
+
+回显原路径 = 路径对了；报 `没有那个文件或目录` = 第 1 行没改对，回 nano 核对，**别急着 make**（步骤 2 的实测图开头记录的就是这一手：先验路径、再编译）。
+
+toychar1.c 完整源码只有 50 行，用 `cat` 打印出来读一遍。**查看文件内容用 `cat`**——只读、打完即返回提示符；**`nano` 是编辑器，要改文件才用**。本篇四个源码文件一个都不用改，唯一动手编辑的只有 Makefile：
+
+```bash
+cat toychar1.c
+```
+
+骨架长这样（50 行，全套的种子）：
 
 ```c
 static int __init toychar_init(void)
@@ -121,33 +137,41 @@ MODULE_INFO(intree, "Y");    //如缺少此行并且驱动在源码树外编译�
 ### 步骤 2：编译、部署、加载（Slide 20~22）
 
 ```bash
-make          # 在 01-toychar/ 里执行
-ls *.ko       # toychar1.ko  toychar2.ko  toychar3.ko
+make                                 # 在 01-toychar/ 里执行
+ls *.ko                              # 通过的样子：toychar1.ko toychar2.ko toychar3.ko 三件
+modinfo toychar1.ko | grep vermagic  # 就地验证：应见 5.4.31 开头 = 与板上内核同源（将来报 Invalid module format 就回头查这行）
 ```
 
-**编译器一致性**是课件红字：模块必须用与编内核**相同的编译器**（我们的 gcc-arm-9.2，编内核的正是它），否则 vermagic 对不上、加载报 `Invalid module format`。编出来的 .ko 会带版本指纹 `vermagic: 5.4.31 SMP preempt mod_unload modversions ARMv7 p2v8`——末段与内核配置（实验二十九建的 `/lib/modules/5.4.31/`）一字对齐。
+![实测make编译全程](./32_实验三十一_toychar虚拟字符设备驱动.assets/02_实测make编译全程.png)
+> 图：实测——一屏收编译全程：先 `ls` 验证 KERNELDIR 指的内核树真实存在，`make` 后 `MODPOST 3 modules` → 绿框 `LD [M]` 三行 = toychar1/2/3.ko 三件落地。
 
-**部署到板上**（NFS 根，直接 cp；从这层起命令在板上 buildroot 根里跑）：
+**编译器一致性**是课件红字：模块必须用与编内核**相同的编译器**（我们的 gcc-arm-9.2，编内核的正是它），否则 vermagic 对不上、加载报 `Invalid module format`。编出来的 .ko 会带版本指纹 `vermagic: 5.4.31 SMP preempt mod_unload modversions ARMv7 p2v8`（实测 `modinfo` 一字不差）——与内核配置（实验二十九建的 `/lib/modules/5.4.31/`）一字对齐。
+
+**部署到板上**（NFS 根，Ubuntu 侧直接 cp 进根目录、板上立即可见；从下面第二个命令块起命令在板上敲）。板上操作前确认板子已点火进系统——实验二十九收尾状态 bootcmd 已指 `run mybootnet`，上电/复位自动进 Linux，root/123 登录：
 
 ```bash
 # Ubuntu 侧：
-cp toychar1.ko toychar2.ko toychar3.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+sudo cp toychar1.ko toychar2.ko toychar3.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+ls /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/*.ko    # 就地验证：三个 .ko 已就位
 ```
+
+> **为什么带 sudo**：实验二十九步骤 2 的 `sudo chown -R root:root` 把 rfs-buildroot 整棵树归了 root，普通用户往里写会报 `权限不够`（实测三连报，加 sudo 解决）——**凡往 rfs-buildroot 里拷文件一律 sudo**，步骤 5 拷 toycharApp 同理。
 
 ```bash
 # 板上（buildroot 根，root 登录）：
-depmod                      # 把新模块写进 modules.dep（modprobe 的查找清单）
-modprobe toychar1           # 加载（modprobe 认模块名；若报 not found 去掉/带上 .ko 各试一次）
-dmesg | tail -5             # 应见 toychar init!
-lsmod                       # 列表里有 toychar1
-rmmod toychar1              # 卸载
-dmesg | tail -3             # 应见 toychar exit!
+depmod                                        # 把新模块写进 modules.dep（modprobe 的查找清单）
+cat /lib/modules/5.4.31/modules.dep | grep toychar    # 就地验证：应见 toychar1/2/3.ko 三行 = modprobe 找得到了
+modprobe toychar1                             # 加载（busybox 版 modprobe 认模块名，带不带 .ko 都吃——课件敲的就是 modprobe toychar1.ko）
+dmesg | tail -5                               # 应见 toychar init!
+lsmod                                         # 列表里有 toychar1
+rmmod toychar1                                # 卸载
+dmesg | tail -3                               # 应见 toychar exit!
 ```
 
-> **第一次加载会遇到"未签名"提示**（课件 Slide 21 预告，我们板上**必然出现**——第 6 章内核配置沿用了 ST fragment 的模块签名校验 CONFIG_MODULE_SIG）：
+![实测板上加载卸载全程](./32_实验三十一_toychar虚拟字符设备驱动.assets/03_实测板上加载卸载全程.png)
+> 图：实测（顶替课件 Slide 21）——板上全程一屏收：depmod 后 `grep modules.dep` 见 toychar1/2/3.ko 三行 = modprobe 找得到了；`modprobe toychar1` 打出 taint 提示（`module verification failed ... tainting kernel`）+ `toychar init!`；`lsmod` 见 `toychar1 16384 0`、**表头带 `Tainted: G`**（G = GPL 模块触发的弄脏登记，正是签名校验那条的后续）；`rmmod` 后 dmesg 见 `toychar exit!`。
 
-![未签名提示](./32_实验三十一_toychar虚拟字符设备驱动.assets/02_未签名提示.png)
-> 图：课件 Slide 21——板串口：`modprobe toychar1.ko` 后打出 `[ 719.556751] toychar1: module verification failed: signature and/or required key missing - tainting kernel`。
+> **第一次加载会遇到"未签名"提示**（课件 Slide 21 预告，我们板上**必然出现**——第 6 章内核配置沿用了 ST fragment 的模块签名校验 CONFIG_MODULE_SIG）——上图里 `modprobe toychar1` 之后那行 `module verification failed ... tainting kernel` 就是它，**不是报错**：
 
 三选一处理（课件原方案）：
 
@@ -155,15 +179,21 @@ dmesg | tail -3             # 应见 toychar exit!
 2. **给驱动签名**：内核源码目录 `scripts/sign-file sha256 certs/signing_key.pem certs/signing_key.x509 <模块路径>/<模块名>.ko`（私钥/公钥是编内核时生成的）；
 3. **关掉签名校验重编内核**：menuconfig → `Enable loadable module support → Module signature verification` 取消勾选。
 
-![签名校验路径](./32_实验三十一_toychar虚拟字符设备驱动.assets/03_签名校验路径.png)
+![签名校验路径](./32_实验三十一_toychar虚拟字符设备驱动.assets/05_签名校验路径.png)
 > 图：课件 Slide 22——配置路径：`-> Enable loadable module support (MODULES [=y]) -> Module signature verification`。
 
-![签名校验菜单](./32_实验三十一_toychar虚拟字符设备驱动.assets/04_签名校验菜单.png)
+![签名校验菜单](./32_实验三十一_toychar虚拟字符设备驱动.assets/06_签名校验菜单.png)
 > 图：课件 Slide 22——"Enable loadable module support" 子菜单：`[ ] Module signature verification` 红框标出不选择（关闭签名校验）；同页还有 Forced module loading、Module unloading、Module versioning support 等选项。
 
 ### 步骤 3：toychar2——注册字符设备（Slide 23）
 
-toychar2 在骨架上加了三样（73 行，读关键段）：
+toychar2 在骨架上加了三样（73 行；**toychar2.ko 在步骤 2 已经和 toychar1 一起编好、一起部署进 `/lib/modules/5.4.31/` 了**，这里到板上直接加载就行）。先通读一遍：
+
+```bash
+cat toychar2.c
+```
+
+关键段是这三样：
 
 ```c
 #define TOYCHAR_MAJOR	200			/* 主设备号 */
@@ -193,9 +223,18 @@ rmmod toychar2
 
 `/proc/devices` 上线一条 200——实验三十第三节那张"登记册"现在有了我们自己的条目。
 
+![实测toychar2注册验证](./32_实验三十一_toychar虚拟字符设备驱动.assets/04_实测toychar2注册验证.png)
+> 图：实测——`modprobe toychar2` 后串口即打 `toychar init!`；`cat /proc/devices | grep toychar` 出 **`200 toychar`**（注册成功，主设备号正是驱动里写死的 200）；`rmmod toychar2` 后 `toychar exit!`。
+
 ### 步骤 4：toychar3——实现操作函数（Slide 24）
 
-toychar3（167 行）补全 fops 的四个成员，**读缓冲区/写缓冲区/内核数据**三块内存就是"虚拟设备"：
+toychar3（167 行）补全 fops 的四个成员，**读缓冲区/写缓冲区/内核数据**三块内存就是"虚拟设备"。老规矩先通读：
+
+```bash
+cat toychar3.c
+```
+
+对照源码，重点看这几段：
 
 ```c
 static char readbuf[100];		/* 读缓冲区 */
@@ -243,28 +282,33 @@ arm-none-linux-gnueabihf-gcc toycharApp.c -o toycharApp
 file toycharApp
 ```
 
-![file验证ARM程序](./32_实验三十一_toychar虚拟字符设备驱动.assets/05_file验证ARM程序.png)
-> 图：课件 Slide 25——`file toycharApp` 输出：`ELF 32-bit LSB executable, ARM, EABI5 ... dynamically linked, interpreter /lib/ld-linux-armhf.so.3 ...`——ARM 架构可执行文件（与实验二十八 file 看大小端是同一个工具，这里看的是目标架构）。
+![实测toycharApp编译验证](./32_实验三十一_toychar虚拟字符设备驱动.assets/07_实测toycharApp编译验证.png)
+> 图：实测（顶替课件 Slide 25）——一屏收全程：`file toycharApp` 见 **`ELF 32-bit LSB executable, ARM, EABI5`**、interpreter `/lib/ld-linux-armhf.so.3` = ARM 架构可执行文件（与实验二十八 file 看大小端是同一个工具，这里看的是目标架构）；`sudo cp` 后 `ls -l` 见 **12,312 字节**、属主 root root，已在板上 /bin 候命。
 
 **测试程序也在 Ubuntu 里交叉编译**（不是板上 gcc——板上没有编译环境），产物拷进根文件系统：
 
 ```bash
-cp toycharApp /home/cnu/nfsboot/rfs-buildroot/bin/
+# Ubuntu 侧：
+sudo cp toycharApp /home/cnu/nfsboot/rfs-buildroot/bin/
+ls -l /home/cnu/nfsboot/rfs-buildroot/bin/toycharApp    # 就地验证：已在板上 /bin 里候命
 ```
 
-toycharApp 的用法（源码头注释）：`./toycharApp /dev/toychar <1|2>`——1 读、2 写（写入固定串 `usr data!`）。
+toycharApp 的用法写在源码头注释里（想看全文就 `cat toycharApp.c`）：`./toycharApp /dev/toychar <1|2>`——1 读、2 写（写入固定串 `usr data!`）。
 
 ### 步骤 6：建设备文件，跑通全链（Slide 26~27）
 
-toychar 不会自动建设备文件（自动创建是第 8 章 mdevled 的事），手动 mknod——**主设备号必须与驱动里写死的 200 一致**：
+toychar 不会自动建设备文件（自动创建是第 8 章 mdevled 的事），手动 mknod——**主设备号必须与驱动里写死的 200 一致**（toychar3.ko 同样早在步骤 2 就编好部署了）：
 
 ```bash
 # 板上：
 modprobe toychar3
 dmesg | tail -3                        # toychar init!
 mknod /dev/toychar c 200 1             # c=字符设备，主 200（与 TOYCHAR_MAJOR 一致），次 1
-ls -l /dev/toychar                     # crw-r--r-- 1 root root 200, 1 ... /dev/toychar
+ls -l /dev/toychar                     # 判据：c 开头 + "200, 1" 两个号（权限位随 umask 可能与课件截图略不同）
 ```
+
+![实测mknod与设备文件](./32_实验三十一_toychar虚拟字符设备驱动.assets/08_实测mknod与设备文件.png)
+> 图：实测——`modprobe toychar3` 打 `toychar init!`（dmesg 前两行 1006/1019 是步骤 3 toychar2 的历史记录——dmesg 是带时间戳的流水账，新旧消息并存属正常）；`mknod /dev/toychar c 200 1` 后 `ls -l` 见 **`crw-r--r-- 1 root root 200, 1`** = 判据全中（c 开头 + 主次号 200, 1）。
 
 跑测试（读 → 写 → dmesg 看内核侧回音）：
 
@@ -275,6 +319,9 @@ toycharApp /dev/toychar 2              # 写设备
 dmesg | tail -3
 # 内核侧打印：kernel senddata ok! / kernel recevdata:usr data!
 ```
+
+![实测全链读写](./32_实验三十一_toychar虚拟字符设备驱动.assets/09_实测全链读写.png)
+> 图：实测——全链闭环一屏收：读设备时串口先打出内核的 `kernel senddata ok!`（printk 直达控制台）、再打出应用的 `read data:kernel data!`；写设备后 dmesg 尾三行 `toychar init!`/`kernel senddata ok!`/`kernel recevdata:usr data!` 全在——应用、设备文件、fops、copy_to_user/from_user 四层全被亲手驱动过。
 
 全链闭环：**应用 toycharApp → open("/dev/toychar") → 主 200 → toychar3 的 fops → read/write → copy_to_user/from_user**——实验三十画的那张四层图，此刻每一层都被你亲手驱动过了。卸载收尾：
 
@@ -293,6 +340,7 @@ rm /dev/toychar                        # 设备文件是手建的，卸载驱动
 5. **未签名 taint 提示不是失败**——非 FORCE 配置下模块照常加载；嫌烦就按课件三选一处理（签名或关校验重编内核）。
 6. 改了驱动源码重编后，板上要**先 rmmod 再 modprobe 新 .ko**——内核里的旧模块不会自己更新；NFS 根下 .ko 是新的但内核内存里还是旧的。
 7. toycharApp 在 Ubuntu 里编译完，`file` 验过是 ARM 再拷板上——拷错了架构板上报 "not found" 或 "Exec format error"。
+8. **toychar2 与 toychar3 都注册主设备号 200 的 `toychar`**——两个同时加载必然有一个注册失败（dmesg 见 `toychar driver register failed`）。验证完一个先 `rmmod` 再验下一个：本篇步骤 3 卸掉 toychar2 之后才在步骤 6 加载 toychar3，就是这个原因。
 
 ## 六、验证点一览
 
@@ -314,18 +362,19 @@ rm /dev/toychar                        # 设备文件是手建的，卸载驱动
 | `make` 报找不到内核/架构错 | KERNELDIR 路径；工具链（前缀 arm-none-linux-gnueabihf-，PATH 生效） |
 | 加载报 `Invalid module format` | 编译器与编内核的不是同一套；`/lib/modules/` 目录名与 `uname -r` 不一致（实验二十九注意事项 2 同款） |
 | `modprobe` 报 not found | 先 `depmod`；模块名不带 .ko；确认 .ko 在 `/lib/modules/$(uname -r)/` 下 |
+| dmesg 见 `toychar driver register failed` | toychar2/3 有一个还加载着（都占主 200）：`lsmod` 查、`rmmod` 掉再加载新的 |
 | `open` 失败 "No such device or address" | mknod 的主设备号与 `TOYCHAR_MAJOR` 不一致；toychar3 加载了吗；`cat /proc/devices` 查 200 在不在 |
 | 读回数据是乱码/空 | cnt 传的长度（toycharApp 固定 50）与 kerneldata 长度差异属正常（buf 未清零部分是栈上旧数据）——以 `read data:kernel data!` 开头为准 |
 | `copy_to_user` 报错 | 检查 `__user` 标注与缓冲区地址（本例照抄素材即可，别"优化"掉拷贝函数） |
 
 ## 七、实验完成标志
 
-- 01-toychar 素材就位，Makefile 的 KERNELDIR 已指向本机内核源码树（步骤 1）
-- `make` 编出 toychar1/2/3.ko 三个模块，已部署 `/lib/modules/5.4.31/` 并 `depmod`（步骤 2）
-- toychar1 加载/卸载通过：dmesg 见 `toychar init!` 与 `toychar exit!`；未签名 taint 提示按三选一处理并记录（步骤 2）
-- toychar2 注册验证通过：`/proc/devices` 出现 `200 toychar`（步骤 3）
-- toychar3 全链测试通过：`mknod /dev/toychar c 200 1` 后，`toycharApp /dev/toychar 1` 读回 `kernel data!`、`toycharApp /dev/toychar 2` 写入后 dmesg 打出 `kernel recevdata:usr data!`（步骤 4~6）
-- 卸载与清理完成：`rmmod toychar3` + 删除 /dev/toychar（步骤 6）
+- 01-toychar 素材就位，Makefile 的 KERNELDIR 已指向本机内核源码树（步骤 1 实测）
+- `make` 编出 toychar1/2/3.ko 三个模块，已部署 `/lib/modules/5.4.31/` 并 `depmod`（步骤 2 实测：MODPOST 3 modules → LD 三件 .ko；sudo cp 就位、modules.dep 三行在册）
+- toychar1 加载/卸载通过：dmesg 实测见 `toychar init!` 与 `toychar exit!`；未签名 taint 提示如约出现，按三选一的方案 1 直接无视、模块照常加载（步骤 2 实测）
+- toychar2 注册验证通过：`/proc/devices` 出现 `200 toychar`（步骤 3 实测）
+- toychar3 全链测试通过：`mknod /dev/toychar c 200 1` 后 `ls -l` 见 `crw-r--r-- ... 200, 1`；`toycharApp /dev/toychar 1` 读回 `kernel data!`（内核侧 `kernel senddata ok!` 同屏）、`toycharApp /dev/toychar 2` 写入后 dmesg 打出 `kernel recevdata:usr data!`（步骤 4~6 实测）
+- 卸载与清理：`rmmod toychar3` 后 dmesg 见 `toychar exit!`、`rm /dev/toychar` 删除设备文件（步骤 6 收尾判据，板上可随时复验）
 
 ## 八、下一步：第 8 章 GPIO——点亮一颗真的 LED
 
