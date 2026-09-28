@@ -2,7 +2,7 @@
 
 > **对应课件**：《第8章 GPIO端口》8.3 节后半，Slide 27-34
 >
-> **系列说明**：本系列基于华清远见 FS-MP1A（STM32MP157A）开发板，对应课件《第8章 GPIO端口》。实验三十二把寄存器地图立好，本篇写**第一个控制真硬件的驱动**：LED1（PZ5）。例 1 `led.c` 走寄存器直控路线（ioremap + readl/writel + BSRR），设备文件手动 mknod——与 toychar 同款流程；例 2 `mdevled.c` 升级为**自动创建设备文件**（alloc_chrdev_region → cdev → class_create → device_create 五函数），`/dev/led` 由内核自己生成——从这版起告别 mknod。两版的测试程序同为 `ledApp`。前置：实验三十二（寄存器地图）、实验三十一（外部模块编译流程）。
+> **系列说明**：本系列基于华清远见 FS-MP1A（STM32MP157A）开发板，对应课件《第8章 GPIO端口》。实验三十二把寄存器地图立好，本篇写**第一个控制真硬件的驱动**：LED1（PZ5）。例 1 `led.c` 走寄存器直控路线（ioremap + readl/writel + BSRR），设备文件手动 mknod——与 toychar 同款流程；例 2 `mdevled.c` 升级为**自动创建设备文件**（alloc_chrdev_region → cdev → class_create → device_create 五函数），`/dev/mdevled` 由内核自己生成——从这版起告别 mknod（设备名跟模块同名，由源码 `LED_NAME` 决定）。两版的测试程序同为 `ledApp`。前置：实验三十二（寄存器地图）、实验三十一（外部模块编译流程）。
 
 ## 一、两版差异一览
 
@@ -41,7 +41,7 @@
 | 自动创建五函数（alloc/cdev/class/device） | 第 8 章后所有驱动模板；第 9 章 dtsled 同款 | 每写一个驱动都回到"手动 mknod"原始社会 |
 | 注销逆序（5→4→3→2→1） | 一切驱动的 exit 函数写法 | 注销顺序错，内核残留资源或崩溃 |
 | BSRR 直控灯 | 第 9 章 dtsled（同一颗灯换成设备树取参）；第 10 章 GUI 背光 | —— |
-| `ls /sys/class/led/` 的 class 概念 | 以后排查"设备文件没生成"先看 class | device_create 失败了还在 mknod 上打转 |
+| `ls /sys/class/mdevled/` 的 class 概念 | 以后排查"设备文件没生成"先看 class | device_create 失败了还在 mknod 上打转 |
 
 ## 四、实验步骤
 
@@ -91,13 +91,22 @@
 
 ```bash
 # Ubuntu，02-led/ 里先 `nano Makefile` 改一处：**Ctrl+W** 搜 `KERNELDIR`，把第 1 行改成你的内核源码树路径（**Ctrl+O** 回车保存、**Ctrl+X** 退出——键位卡见实验二十步骤 1）；`obj-m := led.o` 素材包已预填，不用动
-make
+make                                 # 收尾 MODPOST 1 modules → LD [M] led.ko
+ls *.ko                              # 就地验证：led.ko 存在
 arm-none-linux-gnueabihf-gcc ledApp.c -o ledApp
-cp led.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
-cp ledApp /home/cnu/nfsboot/rfs-buildroot/bin/
+file ledApp                          # 就地验证：ELF 32-bit ... ARM, EABI5
+sudo cp led.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+sudo cp ledApp /home/cnu/nfsboot/rfs-buildroot/bin/
 ```
 
+> **led.ko 由 `make` 产出**——只 nano 改 Makefile 不 make，`ls *.ko` 就是"没有那个文件或目录"；`gcc` 编的 `ledApp` 是用户态测试程序，与内核模块两码事，别混。
+>
+> **为什么带 sudo**：与实验三十一同款——实验二十九 chown 归 root 后凡往 rfs-buildroot 拷文件一律 sudo，普通 cp 报"权限不够"不是坏了。
+
 > Makefile 的 `obj-m` 素材包里已是 `led.o`（与 toychar 包同款加强版）；若你复制了 toychar 的 Makefile，记得把三行 obj-m 换成一行 `obj-m := led.o`。
+
+![实测led编译与部署](./34_实验三十三_LED驱动两个版本.assets/01_实测led编译与部署.png)
+> 图：实测——02-led 一屏收全程：`make` 收尾 `MODPOST 1 modules` → 绿框 `LD [M] led.ko`；`file ledApp` 见 **ARM, EABI5**；sudo cp 两件落位（led.ko 进 modules 目录、ledApp 进 bin）。
 
 ### 步骤 3：加载、手动建设备文件、点灯（Slide 27）
 
@@ -105,7 +114,7 @@ cp ledApp /home/cnu/nfsboot/rfs-buildroot/bin/
 # 板上（buildroot 根）：
 depmod
 modprobe led
-dmesg | tail -3                    # 无报错；加载即执行 init 六步（含默认开灯——LED1 应已亮）
+lsmod                              # 就地验证：列表里有 led（led.c 平时不打印——printk 只在出错路径，dmesg 安静≠没加载）
 mknod /dev/led c 201 0             # 主 201 = LED_MAJOR，与驱动一致
 ls -l /dev/led                     # crw-r--r-- 1 root root 201, 0
 
@@ -113,13 +122,15 @@ ledApp /dev/led 1                  # 写 1 = LEDON → LED1 亮
 ledApp /dev/led 0                  # 写 0 = LEDOFF → LED1 灭
 ```
 
-**LED1 亮灭随命令切换**——第一颗被你亲手点亮的真实硬件。rmmod 后灯灭（exit 函数里 `led_switch(LEDOFF)`）：
+**LED1 亮灭随命令切换**——第一颗被你亲手点亮的真实硬件（盯板上三颗绿灯里丝印 **LED1** 那颗，别盯错灯）。rmmod 后灯灭（exit 函数里 `led_switch(LEDOFF)`）：
 
 ```bash
 rmmod led
-dmesg | tail -2                    # 无新报错即干净卸载
-rm /dev/led                        # 手动建的文件手动删
+dmesg | tail -2                    # 无新报错即干净卸载（照旧安静属正常）
+rm /dev/led                        # 手动建的文件手动删——报 "No such file"？见下
 ```
+
+> **rm 报 "No such file" 不是闹鬼**：mdev（实验二十六 rcS 常驻的热插拔代理）对**模块**的卸载事件也响应——rmmod 时内核给名为 `led` 的模块发 remove 事件，mdev 按名字把同名的 `/dev/led` 一并 unlink 了。设备文件没了 `mknod` 十秒重建，无碍。
 
 ### 步骤 4：mdevled——五个函数，设备文件自动出现（Slide 28~34）
 
@@ -148,27 +159,33 @@ mdevled.c 的 init 关键段（290 行，六步寄存器初始化与 led.c 相�
 编译部署同步骤 2（`03-mdevled/` 里 make + 同一个 ledApp）：
 
 ```bash
-# Ubuntu：
-make
-cp mdevled.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+# Ubuntu，03-mdevled/ 里同样先 `nano Makefile`：**Ctrl+W** 搜 `KERNELDIR`、第 1 行改成你的内核树——**每个素材子目录各一份 Makefile、各改各的**（zip 里预填的都是课件作者路径，02-led 改过不会带过来）
+make                                 # MODPOST 1 modules → LD [M] mdevled.ko
+sudo cp mdevled.ko /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/
+ls /home/cnu/nfsboot/rfs-buildroot/lib/modules/5.4.31/*.ko    # 就地验证：led.ko + mdevled.ko 两件在册
 ```
 
-### 步骤 5：加载验证——/dev/led 自己出现
+![实测mdevled编译与部署](./34_实验三十三_LED驱动两个版本.assets/02_实测mdevled编译与部署.png)
+> 图：实测——03-mdevled 同款流程：nano 改 KERNELDIR（**每个子目录各改各的**）→ `make` → 绿框 `LD [M] mdevled.ko`；sudo cp 后 `ls` 见 modules 目录里五件 .ko——toychar 三件 + led + mdevled（rmmod 只是内存层面卸载，.ko 文件留档属正常）。
+
+### 步骤 5：加载验证——/dev/mdevled 自己出现
 
 ```bash
 # 板上：
 depmod && modprobe mdevled
-dmesg | tail -5                    # 无报错
-ls /sys/class/led/                 # led —— class_create 的产物（/sys 的目录视角）
-ls -l /dev/led                     # 设备文件已自动生成！主设备号是内核分配的（不再是 201）
-cat /proc/devices | grep led       # 看这次分到的主设备号
-ledApp /dev/led 1                  # 亮
-ledApp /dev/led 0                  # 灭
+lsmod                              # mdevled 在列 = 加载成功（平时同样不打印）
+ls /sys/class/mdevled/             # mdevled —— class_create 的产物（/sys 的目录视角）
+ls -l /dev/mdevled                 # 设备文件已自动生成！主设备号是内核分配的（不再是 201）
+cat /proc/devices | grep mdevled   # 看这次分到的主设备号
+ledApp /dev/mdevled 1              # 亮
+ledApp /dev/mdevled 0              # 灭
 ```
 
-`/dev/led` 没有经过任何 mknod——`device_create` 发出设备事件，**实验二十六 rcS 里常驻的 mdev 收到后自动生成文件**（第 6 章 `echo /sbin/mdev > /proc/sys/kernel/hotplug` 那一行的兑现时刻）。查主设备号的新姿势：`ls -l /dev/led` 直接看（每次加载可能不同——这就是"自动分配"）。
+**名字跟上例不一样**：mdevled.c 第 21 行 `#define LED_NAME "mdevled"`——class 与设备文件都叫 **mdevled**，别按例 1 的 `led` 去找（实测按 `/sys/class/led` 找扑了个空才对出来的）。`/dev/mdevled` 没有经过任何 mknod——`device_create` 发出设备事件，**实验二十六 rcS 里常驻的 mdev 收到后自动生成文件**（第 6 章 `echo /sbin/mdev > /proc/sys/kernel/hotplug` 那一行的兑现时刻）。查主设备号的新姿势：`ls -l /dev/mdevled` 直接看（每次加载可能不同——这就是"自动分配"）。
 
-卸载：`rmmod mdevled`——/dev/led 与 /sys/class/led 同步消失（注销五步逆序的现场）。
+实测全中：`lsmod` 见 `mdevled 16384 0`（表头照旧 `Tainted: G`）；`ls -l /dev/mdevled` 见 **`crw-rw---- 240, 0`**——主设备号 240 是内核现场分配的（"自动分配"的铁证，每次加载可能变）；权限位 660 与手动 mknod 的 644 不同——**mdev 建节点有自己的默认权限**，不影响 root 使用；`/proc/devices` 出 `240 mdevled`；`ledApp` 开关灯后 `rmmod mdevled` 收尾。
+
+卸载：`rmmod mdevled`——/dev/mdevled 与 /sys/class/mdevled 同步消失（注销五步逆序的现场）。
 
 ## 五、注意事项
 
@@ -176,7 +193,7 @@ ledApp /dev/led 0                  # 灭
 2. **BSRR 是只写寄存器**：不要"先 readl 再改位"——读到全 0 是正常现象，不是坏了（led.c 注释原话）。
 3. **注销五步严格逆序**（5→4→3→2→1）——顺序错了会在引用未释放资源时崩溃；mdevled.c 的 exit 与 goto fail 链都按这个序写。
 4. **`class_create`/`device_create` 失败要有清理路径**（源码里 `goto fail_class_destroy`/`goto fail_cdev_del` 的回滚链）——照抄即可，但要知道那是"申请一半失败要退已申请的"。
-5. 两个驱动**不要同时加载**：设备名同名（led），第二版会注册失败报 "Device or resource busy"——切版本前先 rmmod。
+5. **切版本前先 rmmod 旧的**——两驱动的模块名（led/mdevled）、设备名（/dev/led、/dev/mdevled）、设备号（201 / 内核分配）互不冲突，同时加载也不会报 busy；但两套驱动控的是**同一颗 PZ5 灯**，同时在场只会让"灯是谁点的"说不清，一次只留一个。
 6. 灯不亮排查顺序：`dmesg` 有无加载报错 → `ls /dev/led` 在不在（例 1 忘 mknod 最常见）→ 极性（我们的板高电平点亮）→ 换 LED2/LED3（PZ6/PZ7）交叉验证硬件。
 
 ## 六、验证点一览
@@ -184,29 +201,29 @@ ledApp /dev/led 0                  # 灭
 | 验证点 | 命令 | 通过的样子 | 在哪一步敲 |
 |---|---|---|---|
 | led.ko 编出 | `ls *.ko`（02-led/） | led.ko 存在 | 步骤 2 |
-| 加载无报错 | `modprobe led` + `dmesg \| tail` | 无 failed；LED1 默认亮 | 步骤 3 |
+| 加载无报错 | `modprobe led` + `lsmod` | led 在列；dmesg 无 failed（平时不打印、安静属正常）；LED1 默认亮 | 步骤 3 |
 | 设备文件（例1） | `ls -l /dev/led`（mknod 后） | `201, 0` 字符设备 | 步骤 3 |
 | 开关灯 | `ledApp /dev/led 1` / `0` | LED1 亮 / 灭 | 步骤 3 |
-| 设备文件（例2） | `modprobe mdevled` 后 `ls -l /dev/led` | 文件自动出现，主设备号非 201 | 步骤 5 |
-| class 视角 | `ls /sys/class/led/` | `led` 目录 | 步骤 5 |
-| 卸载同步 | `rmmod mdevled` 后 `ls /dev/led`、`ls /sys/class/led/` | 两者都消失 | 步骤 5 |
+| 设备文件（例2） | `modprobe mdevled` 后 `ls -l /dev/mdevled` | 自动出现（实测 `crw-rw---- 240, 0`：mdev 默认 660 权限，与 mknod 的 644 不同） | 步骤 5 |
+| class 视角 | `ls /sys/class/mdevled/` | `mdevled` 目录 | 步骤 5 |
+| 卸载同步 | `rmmod mdevled` 后 `ls /dev/mdevled`、`ls /sys/class/mdevled/` | 两者都消失 | 步骤 5 |
 
 不达标时的排查：
 
 | 现象 | 先查什么 |
 |---|---|
-| ledApp 报 `Can't open file` | 例 1 忘了 mknod；例 2 的 device_create 失败（dmesg 看报错、`ls /sys/class/led/`） |
+| ledApp 报 `Can't open file` | 例 1 忘了 mknod；例 2 敲成 `/dev/led` 了（设备文件叫 **/dev/mdevled**）；真没生成再查 device_create（dmesg 报错、`ls /sys/class/mdevled/`） |
 | 灯不亮但命令成功 | 极性认知（高电平亮）；换 `ledApp /dev/led` 连续 1/0 对比；看板子上 LED1 丝印位置别盯错灯 |
 | `modprobe led` 报 busy | toychar/led 旧模块没卸（`lsmod` 清场） |
-| device_create 后 /dev 无文件 | mdev 在岗吗（实验二十六 rcS 的 hotplug 行 + 实验二十七 uevent helper 勾选——两道前提） |
+| device_create 后 /dev 无文件 | mdev 在岗吗（实验二十六 rcS 的 hotplug 行 + 实验二十七 uevent helper 勾选——两道前提）；先 `ls /sys/class/mdevled/` 确认 class 在不在 |
 | rmmod 后又加载主设备号变了 | 正常——alloc_chrdev_region 每次分配（这就是与写死 201 的区别） |
 
 ## 七、实验完成标志
 
-- led.ko 与 ledApp 编译部署完成，`mknod /dev/led c 201 0` 后 `ledApp` 开关灯实测：LED1 亮灭可控（步骤 1~3）
-- rmmod led 干净卸载、/dev/led 手动清理（步骤 3）
-- mdevled.ko 加载后 **/dev/led 自动生成**、`/sys/class/led/led` 在列、主设备号为内核分配值（步骤 4~5）
-- ledApp 对 /dev/led 开关灯同样可控，rmmod 后设备文件与 class 同步消失（步骤 5）
+- led.ko 与 ledApp 编译部署完成，`mknod /dev/led c 201 0` 后 `ledApp` 开关灯实测无报错（步骤 1~3 实测；**LED1 随命令亮灭 = 物理验收判据**，盯丝印 LED1 那颗）
+- rmmod led 干净卸载（步骤 3 实测）；/dev/led 的清理由 mdev 随模块 remove 事件自动完成——手动 rm 报 "No such file" 属正常（步骤 3 实测）
+- mdevled.ko 加载后 **/dev/mdevled 自动生成**（实测 `crw-rw---- 240, 0`——mdev 默认 660 权限）、`/sys/class/mdevled/mdevled` 在列、`/proc/devices` 出 `240 mdevled`（步骤 4~5 实测）
+- ledApp 对 /dev/mdevled 开关灯同样可控（步骤 5 实测）；rmmod 后设备文件与 class 同步消失为卸载同步判据
 - 注销五步逆序与失败回滚链在源码里能指出（步骤 4）
 
 ## 八、下一步：第 9 章 设备树版 LED 驱动

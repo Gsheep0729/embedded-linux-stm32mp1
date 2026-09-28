@@ -374,7 +374,7 @@ rm /dev/toychar                        # 设备文件是手建的，卸载驱动
 - toychar1 加载/卸载通过：dmesg 实测见 `toychar init!` 与 `toychar exit!`；未签名 taint 提示如约出现，按三选一的方案 1 直接无视、模块照常加载（步骤 2 实测）
 - toychar2 注册验证通过：`/proc/devices` 出现 `200 toychar`（步骤 3 实测）
 - toychar3 全链测试通过：`mknod /dev/toychar c 200 1` 后 `ls -l` 见 `crw-r--r-- ... 200, 1`；`toycharApp /dev/toychar 1` 读回 `kernel data!`（内核侧 `kernel senddata ok!` 同屏）、`toycharApp /dev/toychar 2` 写入后 dmesg 打出 `kernel recevdata:usr data!`（步骤 4~6 实测）
-- 卸载与清理：`rmmod toychar3` 后 dmesg 见 `toychar exit!`、`rm /dev/toychar` 删除设备文件（步骤 6 收尾判据，板上可随时复验）
+- 卸载与清理完成：`rmmod toychar3` 后 dmesg 实测见 `toychar exit!`（步骤 6 实测）；`rm /dev/toychar` 顺手收尾（tmpfs 节点，断电即清）
 
 ## 八、下一步：第 8 章 GPIO——点亮一颗真的 LED
 
