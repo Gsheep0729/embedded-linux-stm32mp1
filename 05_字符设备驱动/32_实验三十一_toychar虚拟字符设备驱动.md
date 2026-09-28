@@ -68,7 +68,13 @@ cd <共享目录>/drivers-dev/01-toychar    # 按你的共享目录来
 ls    # Makefile  toychar1.c  toychar2.c  toychar3.c  toycharApp.c
 ```
 
-`nano Makefile` 打开（保存退出键同实验二十步骤 1 的 nano 卡），**第 1 行 KERNELDIR 改成你的内核源码树**（zip 里预填的是课件作者机器的路径；定位用 **Ctrl+W** 搜 `KERNELDIR` 即可）：
+打开 Makefile（保存退出键同实验二十步骤 1 的 nano 卡）：
+
+```bash
+nano Makefile
+```
+
+**第 1 行 KERNELDIR 改成你的内核源码树**（zip 里预填的是课件作者机器的路径；定位用 **Ctrl+W** 搜 `KERNELDIR` 即可）：
 
 ```makefile
 KERNELDIR := /home/cnu/Desktop/LINUX-gy/Test2/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31/

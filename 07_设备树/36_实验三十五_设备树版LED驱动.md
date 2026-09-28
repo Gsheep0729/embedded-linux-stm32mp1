@@ -44,7 +44,19 @@ dtsled.c 的 OF 四件套正好是实验三十四第四节的四个函数：`of_
 
 ### 步骤 1：设备树加 LED 节点（Slide 57）
 
-先回到内核源码顶层（`cd <共享目录>/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31`，新开终端就要重新 cd），然后 `nano arch/arm/boot/dts/stm32mp157a-fsmp1a.dts` 打开（**Ctrl+W** 搜 `aliases` 定位根节点；保存退出键同实验二十步骤 1 的 nano 卡），**在根节点内**（`/ { ... }` 里，aliases/chosen 旁边）加 LED 节点。dtsled.c 按节点名 `stm32mp1-led` 找它、按 compatible 值 `"fsmp1a,led"` 匹配、reg 读 12 个 u32（六组"基址 长度"= RCC 时钟寄存器 + GPIOZ 五个寄存器，与实验三十二的寄存器地图一一对应）：
+先回到内核源码顶层（新开终端就要重新 cd）：
+
+```bash
+cd <共享目录>/stm32mp1-openstlinux-5.4-dunfell-mp1-20-06-24/sources/arm-ostl-linux-gnueabi/linux-stm32mp-5.4.31-r0/linux-5.4.31
+```
+
+然后打开设备树源文件（**Ctrl+W** 搜 `aliases` 定位根节点；保存退出键同实验二十步骤 1 的 nano 卡）：
+
+```bash
+nano arch/arm/boot/dts/stm32mp157a-fsmp1a.dts
+```
+
+**在根节点内**（`/ { ... }` 里，aliases/chosen 旁边）加 LED 节点。dtsled.c 按节点名 `stm32mp1-led` 找它、按 compatible 值 `"fsmp1a,led"` 匹配、reg 读 12 个 u32（六组"基址 长度"= RCC 时钟寄存器 + GPIOZ 五个寄存器，与实验三十二的寄存器地图一一对应）：
 
 ```dts
     stm32mp1-led {
