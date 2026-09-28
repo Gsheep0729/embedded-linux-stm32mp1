@@ -195,7 +195,11 @@ ls ../rfs-busybox/bin | head # 一排命令名
 ls -l ../rfs-busybox/bin/ls  # lrwxrwxrwx ... ls -> busybox（符号连接）
 ```
 
-`bin | head` 打出的清单与上面课件截图**不完全一致属正常**——applet 集合由 `.config` 决定，默认配置与课件作者当年自己配过的那份略有出入。判据认结构不认清单：四样齐全、除 `bin/busybox` 本体外全是符号连接；第 7 章要用的模块工具可用 `ls ../rfs-busybox/sbin | grep -E "insmod|modprobe|depmod"` 顺手确认在列。
+`bin | head` 打出的清单与上面课件截图**不完全一致属正常**——applet 集合由 `.config` 决定，默认配置与课件作者当年自己配过的那份略有出入。判据认结构不认清单：四样齐全、除 `bin/busybox` 本体外全是符号连接。第 7 章要用的模块工具顺手确认在列：
+
+```bash
+ls ../rfs-busybox/sbin | grep -E "insmod|modprobe|depmod"   # 应打出 depmod、insmod、modprobe 三行
+```
 
 ![安装目录总览](./26_实验二十五_busybox构建根文件系统.assets/12_安装目录总览.png)
 > 图：课件 Slide 28——安装目录总览：`bin`、`sbin`、`usr` 三个目录加一个 `linuxrc` 文件。

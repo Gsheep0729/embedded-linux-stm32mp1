@@ -232,6 +232,8 @@ System configuration 照 Location 路径表逐项配：
 
 **一勾**（Target packages → System tools → `[*] kmod`——内核模块工具，第 7 章驱动要用；buildroot 自带的 kmod 比busybox 的 modutils 功能全）：
 
+> **实测补充（2026-09-28）**：勾上 kmod 重编后，`output/target` 里只有 **`libkmod.so` 库三件（59,088 字节，rootfs.tar 增量的本体）**——没有 kmod 命令、也没有 depmod：buildroot 的 kmod 包默认只带来库。**`depmod` 这个命令要从 busybox 里出**（课件 Slide 81 说的"depmod 需在 busybox 中使能"就是它）：`make busybox-menuconfig` → Linux Module Utilities → `[*] depmod`，实验二十九步骤 3 实测兑现。
+
 ![kmod勾选](./29_实验二十八_buildroot配置与编译.assets/23_kmod勾选.png)
 > 图：课件 Slide 74——`-> Target packages -> System tools -> [*] kmod`，使能内核模块相关命令（depmod 等）。
 
@@ -244,7 +246,7 @@ grep -E "BR2_LINUX_KERNEL=|BR2_TARGET_UBOOT=" .config   # 应无输出（两禁�
 ```
 
 ![实测步骤4就地验证](./29_实验二十八_buildroot配置与编译.assets/20_实测步骤4就地验证.png)
-> 图：实测——三条 grep 的现场：架构两行（`BR2_arm=y`、`BR2_cortex_a7=y`）与工具链行（`BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y`）都在列，第三条两禁无输出 ✓。**注意截图这一刻第二条只打出工具链一行——`BR2_PACKAGE_KMOD=y` 没出现，说明当时 kmod 还没勾上**（下一条命令就是 `make menuconfig` 回去补）；kmod 必须补勾（第 7 章模块工具），补完记得重跑 `make` 让 rootfs.tar 带上它。
+> 图：实测（终态）——三条 grep 全部通过：架构两行 + 工具链行 + **`BR2_PACKAGE_KMOD=y`**（kmod 补勾后的复验；此前首验在这个位置只有工具链一行、kmod 缺席，漏勾与补救全过程记在完成标志里）+ 两禁无输出 ✓。
 
 ### 步骤 5：make 编译，取 rootfs.tar（Slide 75~76）
 
@@ -315,7 +317,7 @@ ls rfs-buildroot    # 完整目录树：bin dev etc lib ... usr var，与 busybo
 ## 七、实验完成标志
 
 - buildroot-2020.02.6 解压就位，menuconfig 六站配置完成：Target options 六项、Toolchain（External/Custom/Pre-installed + path/prefix/gcc 9.x/headers 4.20.x/glibc/SSP/RPC/C++/MMU）、System configuration（hostname/banner/BusyBox init/mdev/root 登录，自定义密码 `123`）、Filesystem images 保持课件默认（实测状态与 Slide 72 一致）、Kernel 与 U-Boot 双禁（步骤 2~4 实测，图 07/14/17/19/20）
-- `.config` 的 grep 验证全部符合（步骤 4 实测，图 20）；**kmod 首验漏勾（`grep` 见 `# BR2_PACKAGE_KMOD is not set`），回菜单按 `/` 搜 KMOD 定位补勾、重编后打出 `BR2_PACKAGE_KMOD=y`**（步骤 4 实测）
+- `.config` 的 grep 验证全部符合（步骤 4 实测，图 20）；**kmod 首验漏勾（`grep` 见 `# BR2_PACKAGE_KMOD is not set`），回菜单按 `/` 搜 KMOD 定位补勾、重编后打出 `BR2_PACKAGE_KMOD=y`**（步骤 4 实测）；勾 kmod 只带来 `libkmod.so` 库（depmod 命令仍缺），**depmod 在实验二十九经 busybox-menuconfig 兑现**
 - `make` 编译成功，`output/images/` 生成 rootfs.tar 等**五个产物**（rootfs.tar 终值实测 **3,450,880 字节**，首编 3,389,440——多出的 61,440 就是补勾 kmod 的体量；映像类是 Filesystem images 勾选的顺带产物，步骤 5 实测，图 25）
 - rootfs.tar 已解包到 `/home/cnu/nfsboot/rfs-buildroot`，目录树 18 样完整（步骤 5 实测，图 25）
 
