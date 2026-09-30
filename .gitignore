@@ -21,4 +21,5 @@ en.SDK-*/
 *.rar
 *.mp4
 !*点火*_metool.mp4
+!*实机试玩*_metool.mp4
 .zcode/

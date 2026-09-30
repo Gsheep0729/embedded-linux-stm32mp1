@@ -248,7 +248,7 @@ struct Bump {
 };
 
 enum GState { ST_TITLE, ST_PLAY, ST_DYING, ST_GAMEOVER, ST_WIN };
-enum Btn { B_NONE, B_LEFT, B_RIGHT, B_JUMP, B_PAUSE };
+enum Btn { B_NONE, B_LEFT, B_RIGHT, B_JUMP, B_PAUSE, B_MCONT, B_MEXIT };
 
 // ---------------- 精灵集合 ----------------
 struct Sprites {
@@ -401,8 +401,10 @@ protected:
             tapRequest = true;
             break;
         case Qt::Key_P:
-            if (state == ST_PLAY)
+            if (state == ST_PLAY) {
                 paused = !paused;
+                pauseMenu = paused;
+            }
             break;
         default:
             break;
@@ -885,8 +887,16 @@ private:
     void onPress(const QPointF& pos)
     {
         tapRequest = true;      // 状态机自己决定要不要消费（标题/结算界面用）
-        if (state == ST_PLAY && hitButton(pos) == B_PAUSE)
+        if (state != ST_PLAY)
+            return;
+        const Btn b = hitButton(pos);
+        if (paused && pauseMenu)
+            qDebug() << "menu press:" << pos << "-> " << b;   // 菜单排障：触点坐标与命中结果
+        if (b == B_PAUSE) {
             paused = !paused;
+            pauseMenu = paused;   // 暂停即弹出菜单（继续 / 退出）
+            qDebug() << "pause toggle ->" << paused << pauseMenu;
+        }
     }
 
     Btn hitButton(const QPointF& pos) const
@@ -894,6 +904,17 @@ private:
         const qreal W = width(), H = height();
         if (QRectF(W - 58, 18, 44, 44).contains(pos))
             return B_PAUSE;
+        // 暂停菜单：按钮几何定义在逻辑坐标系，这里换算成屏幕坐标来命中——
+        // 与其它按钮走同一条已验证的触控路径，绘制与命中永远共用同一几何
+        if (paused && pauseMenu) {
+            for (int i = 0; i < 2; ++i) {
+                const QRect b = pauseMenuBtn(i);
+                const QRectF native(b.x() * mScale + mOffX, b.y() * mScale + mOffY,
+                                    b.width() * mScale, b.height() * mScale);
+                if (native.adjusted(-8, -8, 8, 8).contains(pos))
+                    return (i == 0) ? B_MCONT : B_MEXIT;
+            }
+        }
         struct { Btn b; QPointF c; qreal r; } defs[3] = {
             { B_LEFT,  QPointF(W * 0.16, H - H * 0.11),          qMin(W, H) * 0.095 },
             { B_RIGHT, QPointF(W * 0.38, H - H * 0.11),          qMin(W, H) * 0.095 },
@@ -909,20 +930,37 @@ private:
 
     void refreshButtons()
     {
-        tL = tR = tJ = tPause = false;
+        tL = tR = tJ = tPause = tMC = tME = false;
         for (QMap<int, int>::const_iterator it = touchBind.constBegin();
              it != touchBind.constEnd(); ++it) {
             if (it.value() == B_LEFT)  tL = true;
             if (it.value() == B_RIGHT) tR = true;
             if (it.value() == B_JUMP)  tJ = true;
             if (it.value() == B_PAUSE) tPause = true;
+            if (it.value() == B_MCONT) tMC = true;
+            if (it.value() == B_MEXIT) tME = true;
         }
         if (mouseBtn == B_LEFT)  tL = true;
         if (mouseBtn == B_RIGHT) tR = true;
         if (mouseBtn == B_JUMP)  tJ = true;
         if (mouseBtn == B_PAUSE) tPause = true;
-        if (tJ && !prevTJ) in.jumpPress = true;   // 触屏没有自动重复，自己检测按下沿
+        if (mouseBtn == B_MCONT) tMC = true;
+        if (mouseBtn == B_MEXIT) tME = true;
+        if (tJ && !prevTJ && !paused) in.jumpPress = true;   // 触屏没有自动重复，自己检测按下沿；暂停期间不缓存起跳
         prevTJ = tJ;
+        // 暂停菜单：按下沿触发一次（与其它按钮同一条触控绑定路径）
+        if (tMC && !prevTMC) {
+            qDebug() << "menu: CONTINUE";
+            paused = false;
+            pauseMenu = false;
+        }
+        if (tME && !prevTME) {
+            qDebug() << "menu: EXIT";
+            saveHiscore();
+            qApp->quit();
+        }
+        prevTMC = tMC;
+        prevTME = tME;
     }
 
     // ---------- 渲染 ----------
@@ -1139,11 +1177,26 @@ private:
             drawCentered(c, QStringLiteral("TAP TO CONTINUE"), 1, 170, 0xFFFCFCFC);
     }
 
+    // 暂停菜单：两枚按钮（0=CONTINUE 1=EXIT），画与命中测试共用同一几何
+    QRect pauseMenuBtn(int which) const
+    {
+        return QRect((mLw - 120) / 2, mLh / 2 - 14 + which * 30, 120, 20);
+    }
+
     void drawPaused(QPainter& c)
     {
         c.fillRect(0, 0, mLw, mLh, QColor(0, 0, 0, 150));
-        drawCentered(c, QStringLiteral("PAUSED"), 2, 180, 0xFFFCFCFC);
-        drawCentered(c, QStringLiteral("TAP TOP-RIGHT TO RESUME"), 1, 214, 0xFFB8D8F8);
+        drawCentered(c, QStringLiteral("PAUSED"), 2, mLh / 2 - 64, 0xFFFCFCFC);
+        for (int i = 0; i < 2; ++i) {
+            const QRect b = pauseMenuBtn(i);
+            c.fillRect(b, QColor(0, 0, 0, 210));
+            c.setPen(QPen(QColor(0xFFFCFCFC), 1));
+            c.drawRect(b);
+            const QString s = (i == 0) ? QStringLiteral("CONTINUE") : QStringLiteral("EXIT");
+            drawTextPx(c, b.x() + (b.width() - textW(s, 1)) / 2, b.y() + 7, s, 1,
+                       0xFFFCFCFC, 0xFF000000);
+        }
+        drawCentered(c, QStringLiteral("TOP-RIGHT = PAUSE MENU"), 1, mLh / 2 + 88, 0xFFB8D8F8);
     }
 
     void drawCentered(QPainter& c, const QString& s, int scale, int y, QRgb color)
@@ -1237,6 +1290,7 @@ private:
     int stateT = 0;
     int winPhase = 0;
     bool paused = false;
+    bool pauseMenu = false;
 
     int score = 0, coinsCnt = 0, lives = 3, timeLeft = 300, timeBonus = 0;
     int mHiscore = 0;
@@ -1253,8 +1307,8 @@ private:
 
     Input in;
     bool kbL = false, kbR = false, kbJ = false;
-    bool tL = false, tR = false, tJ = false, tPause = false;
-    bool prevTJ = false;
+    bool tL = false, tR = false, tJ = false, tPause = false, tMC = false, tME = false;
+    bool prevTJ = false, prevTMC = false, prevTME = false;
     bool tapRequest = false;
     Btn mouseBtn = B_NONE;
     QMap<int, int> touchBind;
@@ -1277,5 +1331,10 @@ int main(int argc, char* argv[])
     w.showFullScreen();
 
     qDebug() << "screen" << scr.size() << "logical" << QSize(lw, lh) << "scale" << scale;
-    return app.exec();
+    const int ret = app.exec();
+    // 退出后清帧缓冲：不清的话最后一帧会一直冻在屏上，看着像程序没退
+    QFile fbs(QStringLiteral("/dev/fb0"));
+    if (fbs.open(QIODevice::WriteOnly))
+        fbs.write(QByteArray(2 * 1024 * 1024, '\0'));
+    return ret;
 }
